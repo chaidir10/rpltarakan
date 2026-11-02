@@ -1590,31 +1590,13 @@ function pdfNominatif(s){
 }
 /* ================= Surat pernyataan transportasi (PDF) ================= */
 const muatGambar=url=>new Promise((res,rej)=>{const im=new Image();im.onload=()=>res(im);im.onerror=rej;im.src=url;});
-/* Kop sama dengan surat tugas, digambar ke kanvas karena PDF ini hanya memakai font bawaan */
-async function kopJpeg(){
-  const K=DB.settings.kop,S=3,W=534,c=document.createElement('canvas'),x=c.getContext('2d');
-  let H=106;
-  if(K.mode==='gambar'&&K.gambar){
-    const im=await muatGambar(K.gambar.url);H=W*im.naturalHeight/im.naturalWidth;
-    c.width=W*S;c.height=H*S;x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);x.drawImage(im,0,0,c.width,c.height);
-  }else{
-    const [lg,pin,tel,web]=await Promise.all([K.logo?K.logo.url:LOGO_URL,icUrl('pin'),icUrl('tel'),icUrl('web')].map(muatGambar));
-    c.width=W*S;c.height=H*S;x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);x.scale(S,S);
-    x.drawImage(lg,0,0,156,K.logo?156*K.logo.h/K.logo.w:60);
-    const FN='"Segoe UI",Arial,sans-serif',kiri=260.7;let y=0;
-    const baris=(t,sz,lh,warna,tebal,ikon)=>{x.font=`${tebal?"bold ":""}${sz}px ${FN}`;x.fillStyle=warna;if(ikon)x.drawImage(ikon,kiri,y+(lh-8)/2,8,8);x.fillText(t||'',kiri+(sz<10?11:0),y+lh*.8);y+=lh;};
-    baris(K.l1,15,17,'#12B0A0',1);baris(K.l2,11.5,12.5,'#6B7472',1);baris(K.l3,11.5,12.5,'#6B7472',1);baris(K.l4,11.5,15,'#6B7472');
-    baris(K.a1,8.5,12,'#6B7472',0,pin);baris(K.a2,8.5,12,'#6B7472');baris(K.telp,8.5,12,'#6B7472',0,tel);baris(K.web,8.5,12,'#6B7472',0,web);
-  }
-  return{bytes:dataBytes(c.toDataURL('image/jpeg',.92)),w:c.width,h:c.height,H};
-}
 async function pdfPernyataan(s){
-  const kop=await kopJpeg(),a=agenOf(s.agenId)||{},wk=WILKER.find(w=>w.id===s.wilker)||{};
-  const PH=842,L=85,R=524,FS=11,LH=13.5,halaman=[[]];
+  const a=agenOf(s.agenId)||{},wk=WILKER.find(w=>w.id===s.wilker)||{};
+  const PH=842,L=85,R=524,FS=11,LH=14.5,halaman=[[]];
   const pe=t=>String(t).replace(/[^\x20-\x7e]/g,'?').replace(/([\\()])/g,'\\$1');
   const tulis=(x,y,t,o={})=>{const sz=o.size||FS,w=lebarTeks(t,sz,o.bold),xx=o.align==='c'?x-w/2:o.align==='r'?x-w:x;halaman[halaman.length-1].push(`BT /${o.bold?"F2":"F1"} ${sz} Tf ${(o.tw||0).toFixed(3)} Tw ${xx.toFixed(2)} ${(PH-y).toFixed(2)} Td (${pe(t)}) Tj ET`);};
   const garis=(x1,y1,x2,y2)=>halaman[halaman.length-1].push(`.6 w ${x1.toFixed(2)} ${(PH-y1).toFixed(2)} m ${x2.toFixed(2)} ${(PH-y2).toFixed(2)} l S`);
-  let y=28+kop.H+18;
+  let y=64;
   const cukup=h=>{if(y+h>PH-30){halaman.push([]);y=60;}};
   const paragraf=(t,indent=36)=>{const lebar=R-L,ls=[];let b='';String(t).split(/\s+/).filter(Boolean).forEach(k=>{const w=lebar-(ls.length?0:indent),u=b?b+' '+k:k;if(lebarTeks(u,FS)<=w||!b)b=u;else{ls.push(b);b=k;}});if(b)ls.push(b);
     ls.forEach((l,i)=>{cukup(LH);const x=L+(i?0:indent),sp=l.split(' ').length-1,tw=i<ls.length-1&&sp?(R-x-lebarTeks(l,FS))/sp:0;tulis(x,y,l,{tw});y+=LH;});};
@@ -1633,11 +1615,11 @@ async function pdfPernyataan(s){
   barisTabel(['No','Nama Petugas','NIP','Pangkat/Gol.','Jabatan'],{bold:true});
   s.petugas.forEach((id,i)=>{const u=petugasOf(id)||{};barisTabel([String(i+1),u.nama,u.nip,u.pangkat,u.jabatan]);});y+=10;
   paragraf('Atas penyediaan transportasi tersebut, biaya transportasi petugas tidak ditagihkan melalui Rekening Pemerintah Lainnya (RPL).');y+=4;
-  const SISI=s.petugas.length>2?52:64,namaAgen=bungkus(s.agenSurat||a.nama||'',8.5,R-347);cukup(LH*2+10+Math.max(8+s.petugas.length*(SISI+3),LH*2+4+SISI+10*(namaAgen.length+1)+4));
+  const SISI=68,namaAgen=bungkus(s.agenSurat||a.nama||'',8.5,R-347);cukup(LH*2+10+Math.max(8+s.petugas.length*(SISI+3),LH*2+4+SISI+10*(namaAgen.length+1)+4));
   paragraf('Demikian surat pernyataan ini dibuat dengan sebenarnya untuk dipergunakan sebagaimana mestinya.');y+=10;
   // Tanda tangan QR: petugas berjejer ke bawah di kiri, agen di sebelah kanan
   const tempat=(wk.tempat||'').toLowerCase().replace(/(^|\s)\S/g,m=>m.toUpperCase()),gambarQr=[],XA=347;
-  const pasangQr=async(d,x,atas)=>{const kan=await kanvasQr(kodeQrTtd(d),440,2);gambarQr.push({bytes:dataBytes(kan.toDataURL('image/jpeg',.95)),w:kan.width,h:kan.height});halaman[halaman.length-1].push(`q ${SISI} 0 0 ${SISI} ${x.toFixed(2)} ${(PH-atas-SISI).toFixed(2)} cm /Im${gambarQr.length+1} Do Q`);};
+  const pasangQr=async(d,x,atas)=>{const kan=await kanvasQr(kodeQrTtd(d),440,2);gambarQr.push({bytes:dataBytes(kan.toDataURL('image/jpeg',.95)),w:kan.width,h:kan.height});halaman[halaman.length-1].push(`q ${SISI} 0 0 ${SISI} ${x.toFixed(2)} ${(PH-atas-SISI).toFixed(2)} cm /Im${gambarQr.length} Do Q`);};
   tulis(L,y,'Petugas yang bertugas,');tulis(XA,y,`${tempat}, ${tgl2(s.tanggal)}`);
   let yp=y+6;
   for(const id of s.petugas){const u=petugasOf(id)||{},ls=bungkus(u.nama||'',8.5,XA-L-SISI-20),tinggi=(ls.length+(u.nip?1:0))*10;
@@ -1650,10 +1632,10 @@ async function pdfPernyataan(s){
   // Berkas PDF
   const objJpeg=g=>{const biner=[];for(let i=0;i<g.bytes.length;i+=8192)biner.push(String.fromCharCode.apply(null,g.bytes.subarray(i,i+8192)));return `<< /Type /XObject /Subtype /Image /Width ${g.w} /Height ${g.h} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${g.bytes.length} >>\nstream\n${biner.join('')}\nendstream`;};
   const font=b=>`<< /Type /Font /Subtype /Type1 /BaseFont /${b} /Encoding /WinAnsiEncoding >>`;
-  const obj=['<< /Type /Catalog /Pages 2 0 R >>','',font('Helvetica'),font('Helvetica-Bold'),objJpeg(kop),...gambarQr.map(objJpeg)];
+  const obj=['<< /Type /Catalog /Pages 2 0 R >>','',font('Helvetica'),font('Helvetica-Bold'),...gambarQr.map(objJpeg)];
   const anak=[];
-  halaman.forEach((h,i)=>{const isi=(i?'':`q 534 0 0 ${kop.H.toFixed(2)} 30.5 ${(PH-28-kop.H).toFixed(2)} cm /Im1 Do Q\n`)+h.join('\n');
-    obj.push(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Contents ${obj.length+2} 0 R /Resources << /Font << /F1 3 0 R /F2 4 0 R >> /XObject << /Im1 5 0 R ${gambarQr.map((g,i)=>`/Im${i+2} ${i+6} 0 R`).join(' ')} >> >> >>`);anak.push(`${obj.length} 0 R`);
+  halaman.forEach((h,i)=>{const isi=h.join('\n');
+    obj.push(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Contents ${obj.length+2} 0 R /Resources << /Font << /F1 3 0 R /F2 4 0 R >> /XObject << ${gambarQr.map((g,i)=>`/Im${i+1} ${i+5} 0 R`).join(' ')} >> >> >>`);anak.push(`${obj.length} 0 R`);
     obj.push(`<< /Length ${isi.length} >>\nstream\n${isi}\nendstream`);});
   obj[1]=`<< /Type /Pages /Kids [${anak.join(" ")}] /Count ${anak.length} >>`;
   let pdf='%PDF-1.4\n';const off=[];
