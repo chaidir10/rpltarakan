@@ -1071,7 +1071,7 @@ function toast(msg,type){const t=document.createElement('div');t.className='toas
 let modalOpen=false;
 function openModal({title,body,foot='',wide=false,form=null}){
   const inner=`<div class="mh"><h3>${esc(title)}</h3><button type="button" class="btn ghost icon sm" data-act="closeModal" aria-label="Tutup">${ic('x')}</button></div><div class="mb">${body}</div>${foot?`<div class="mf">${foot}</div>`:''}`;
-  $('#modal-root').innerHTML=`<div class="scrim" data-scrim><${form?`form data-form="${form}" novalidate`:'div'} class="modal ${wide?'wide':''}" role="dialog" aria-modal="true" aria-label="${esc(title)}">${inner}</${form?'form':'div'}></div>`;
+  $('#modal-root').innerHTML=`<div class="scrim"><${form?`form data-form="${form}" novalidate`:'div'} class="modal ${wide?'wide':''}" role="dialog" aria-modal="true" aria-label="${esc(title)}">${inner}</${form?'form':'div'}></div>`;
   modalOpen=true;
   const f=$('#modal-root .mb input:not([readonly]):not([type=hidden]),#modal-root .mb select,#modal-root .mb textarea');
   if(f&&window.innerWidth>860)f.focus();
@@ -2376,7 +2376,6 @@ document.addEventListener('click',e=>{
     const fn=actions[act.dataset.act];
     if(fn){const kunci=[...act.attributes].filter(a=>a.name.startsWith('data-')).map(a=>`[${a.name}="${CSS.escape(a.value)}"]`).join('');const keepDefault=fn(act,e);if(!act.isConnected&&riakPos){const b=document.querySelector(kunci);if(b&&b.matches(TEKAN))riak(b,riakPos);}riakPos=null;if(keepDefault!==true)e.preventDefault();e.stopPropagation();return;}
   }
-  const scrim=e.target.closest('[data-scrim]');if(scrim&&e.target===scrim){closeModal();return;}
   const go=e.target.closest('[data-go]');if(go&&!e.target.closest('a,button,input,label')){location.hash='#/'+go.dataset.go;return;}
   if(!e.target.closest('.combo'))document.querySelectorAll('.combo-list').forEach(b=>b.hidden=true);
 });
@@ -2391,7 +2390,6 @@ document.addEventListener('dragleave',e=>{const d=e.target.closest&&e.target.clo
 document.addEventListener('drop',e=>{const d=e.target.closest&&e.target.closest('.drop');if(!d)return;e.preventDefault();d.classList.remove('over');const i=d.querySelector('input');i.files=e.dataTransfer.files;i.dispatchEvent(new Event('change',{bubbles:true}));});
 document.addEventListener('input',e=>{const k=e.target.dataset&&e.target.dataset.input;if(k&&inputs[k])inputs[k](e);});
 document.addEventListener('change',e=>{const k=e.target.dataset&&e.target.dataset.change;if(k&&changes[k]){changes[k](e);}});
-document.addEventListener('keydown',e=>{if(e.key==='Escape'&&modalOpen)closeModal();});
 for(const ev of ['focusin','focusout','click'])document.addEventListener(ev,e=>{if(e.target.dataset&&e.target.dataset.input==='bankCombo')inputs.bankCombo(e);});
 addEventListener('hashchange',route);
 document.addEventListener('toggle',e=>{if(e.target.classList&&e.target.classList.contains('inv-det'))ui.invBuka=e.target.open;},true);
