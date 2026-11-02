@@ -1781,12 +1781,12 @@ function renderSuratList(){
 /* ================= Form surat tugas ================= */
 let formJenis=['cop'],formOrang=3,halOtomatis='';
 function vSuratForm(s){
-  const v=s||{jenis:['cop'],tglST:today(),tanggal:today(),tglAgen:today(),hal:halDari(['cop']),posisi:'',penandatangan:'kepala',petugas:[]};
+  const v=s||{jenis:[],tglST:today(),tanggal:today(),tglAgen:today(),hal:'',posisi:'',penandatangan:'kepala',petugas:[]};
   formJenis=urutJenis(v.jenis);formOrang=s?s.petugas.length:CONTOH.cop;ui.pick=[...v.petugas];halOtomatis=halDari(formJenis);
   const a=v.agenId?agenOf(v.agenId):null;
   const pj=DB.settings.pejabat.filter(p=>p.nama);
   return `<form class="split" data-form="surat" data-id="${s?s.id:''}" novalidate><div class="stack">
-  <div class="card"><div class="hd"><h2>Jenis pemeriksaan</h2><span class="small muted"><span id="jenis-count">${v.jenis.length} dipilih</span>, bisa lebih dari satu</span></div><div class="bd stack jenis-bd">
+  <div class="card"><div class="hd"><h2>Jenis pemeriksaan</h2><span class="small muted"><span id="jenis-count">${v.jenis.length?`${v.jenis.length} dipilih`:'Belum dipilih'}</span>, bisa lebih dari satu</span></div><div class="bd stack jenis-bd">
     ${ME.wilker?`<div class="jb"><span class="lbl">Wilayah kerja</span><div class="jb-isi"><span class="tag info">${esc(wkNama(ME.wilker))}</span></div></div>`:`<div class="jb jb-tumpuk"><label class="lbl req" for="f_wilker">Wilayah kerja</label><div class="jb-isi"><select class="inp" id="f_wilker" name="wilker"><option value="">Pilih wilayah kerja</option>${WILKER.map(w=>`<option value="${w.id}" ${v.wilker===w.id?'selected':''}>${esc(w.nama)}</option>`).join('')}</select></div></div>`}
     <div id="jenis-grid">${jenisButtons()}</div>
     <div class="jb"><span class="lbl">Jumlah petugas</span><div class="jb-isi"><div class="seg" id="orang-seg">${orangButtons()}</div></div></div>
