@@ -213,7 +213,23 @@ a.stat:hover{border-color:var(--line2)}
 .log li{padding:9px 0;border-bottom:1px solid var(--line)}.log li:last-child{border:0}
 
 .jenis-grup{display:grid;gap:7px}
-#jenis-grid{display:grid;gap:14px}
+#jenis-grid{display:grid;gap:10px}
+#jenis-grid .jenis-grup{grid-template-columns:150px minmax(0,1fr);gap:6px 12px;align-items:start}
+#jenis-grid .lbl{padding-top:7px;line-height:1.3}
+#jenis-grid .jenis-grid{display:flex;flex-wrap:wrap;gap:6px}
+#jenis-grid .opt{display:inline-flex;align-items:center;gap:7px;width:auto;min-height:34px;padding:5px 11px 5px 8px;border-radius:9px;font-size:13.5px}
+#jenis-grid .opt b{font-weight:550;white-space:nowrap}
+#jenis-grid .cek{width:16px;height:16px;flex:none;display:grid;place-items:center;border:1.5px solid var(--line2);border-radius:4px;background:var(--surface)}
+#jenis-grid .opt.on .cek{background:var(--brand);border-color:var(--brand);color:var(--brand-ink)}
+#jenis-grid .cek svg.i{width:12px;height:12px;stroke-width:3}
+.jenis-dipilih{margin:0}.jenis-dipilih b{font-weight:600;color:var(--ink2)}
+.cek-jarak{display:flex;align-items:center;gap:9px;min-height:38px;font-weight:550;cursor:pointer}
+.cek-jarak input{width:18px;height:18px;margin:0;flex:none;accent-color:var(--brand);cursor:pointer}
+@media (max-width:860px){
+  #jenis-grid .jenis-grup{grid-template-columns:minmax(0,1fr);gap:5px}
+  #jenis-grid .lbl{padding-top:0}
+  #jenis-grid .opt{min-height:38px}
+}
 .opt{position:relative}
 .opt>svg.i{position:absolute;top:10px;right:10px;width:16px;height:16px;color:var(--brand-text);stroke-width:2.4}
 /* Pilihan transportasi agen */
@@ -1031,7 +1047,7 @@ const namaKapal=s=>`${s.kapal} (GT.${s.gt})`;
 const jarakST=s=>s.jarak==='jauh'?'jauh':'dekat';
 /* Lebih dari 4 mil: biaya luar kota masuk kolom Uang Harian dan transport lokal tidak berlaku */
 const biayaJarak=j=>j==='jauh'?{transport:0,uangHarian:DB.settings.tarifLuar||0}:{transport:DB.settings.tarif||0,uangHarian:0};
-const pilihJarak=(val,change='')=>`<div class="field"><label class="req" for="f_jarak">Kategori jarak pemeriksaan</label><select class="inp" id="f_jarak" name="jarak" ${change}>${Object.entries(JARAK).map(([k,l])=>`<option value="${k}" ${val===k?'selected':''}>${l}</option>`).join('')}</select></div>`;
+const pilihJarak=(val,change='')=>`<label class="cek-jarak"><input type="checkbox" id="f_jarak" name="jarak" value="jauh" ${val==='jauh'?'checked':''} ${change}><span>Jarak lebih dari 4 mil</span></label>`;
 const hintJarak=j=>j==='jauh'?`Rp ${rp(DB.settings.tarifLuar||0)} per orang masuk kolom Uang Harian. Transport Lokal tidak berlaku.`:'Biaya memakai Transport Lokal.';
 const biayaBaris=r=>(+r.transport||0)+(+r.penginapan||0)+(+r.uangHarian||0);
 const totalTagihan=t=>t?t.rincian.reduce((a,r)=>a+biayaBaris(r),0):0;
@@ -1786,7 +1802,7 @@ function vSuratForm(s){
   <div class="form-act"><a class="btn" href="#/${s?'surat/'+s.id:'surat'}">Batal</a><button class="btn pri">${s?'Simpan perubahan':'Simpan surat'}</button></div>
   </div></form>`;
 }
-const jenisButtons=()=>GRUP_JENIS.map(([g,judul])=>`<div class="jenis-grup"><div class="lbl">${judul}</div><div class="jenis-grid">${URUT_JENIS.filter(k=>JENIS[k].grup===g).map(k=>{const j=JENIS[k],on=formJenis.includes(k);return `<button type="button" class="opt ${on?'on':''}" data-act="setJenis" data-k="${k}" aria-pressed="${on}">${on?ic('check'):''}<b>${esc(j.label)}</b><small>${esc(j.nama)}</small></button>`;}).join('')}</div></div>`).join('');
+const jenisButtons=()=>GRUP_JENIS.map(([g,judul])=>`<div class="jenis-grup"><div class="lbl">${judul}</div><div class="jenis-grid">${URUT_JENIS.filter(k=>JENIS[k].grup===g).map(k=>{const j=JENIS[k],on=formJenis.includes(k);return `<button type="button" class="opt ${on?'on':''}" data-act="setJenis" data-k="${k}" aria-pressed="${on}" title="${esc(j.nama)}"><span class="cek">${on?ic('check'):''}</span><b>${esc(j.label)}</b></button>`;}).join('')}</div></div>`).join('')+`<p class="hint jenis-dipilih">${formJenis.length?urutJenis(formJenis).map(k=>`<b>${esc(JENIS[k].label)}</b>: ${esc(JENIS[k].nama)}`).join('; '):'Belum ada jenis pemeriksaan yang dipilih.'}</p>`;
 const orangButtons=()=>[1,2,3].map(n=>`<button type="button" class="${formOrang===n?'on':''}" data-act="setOrang" data-n="${n}" aria-pressed="${formOrang===n}">${n} orang</button>`).join('');
 const CONTOH={cop:3,'sscec+p3k':2,penumpang:3};
 const formatHint=()=>{if(!formJenis.length)return 'Pilih jenis pemeriksaan terlebih dahulu.';const lay=formOrang<3?'Nama petugas ditulis langsung di badan surat.':'Nama petugas ditulis pada lampiran halaman 2.';
@@ -2313,7 +2329,7 @@ async function imgSetting(e,maxW,apply){
   try{apply(await fileToImage(file,maxW));refresh();toast('Gambar disimpan');}catch(err){toast(err.message,'bad');}
 }
 const changes={
-  tagihanJarak(e){const j=e.target.value,b=biayaJarak(j),f=e.target.form;
+  tagihanJarak(e){const j=e.target.checked?'jauh':'dekat',b=biayaJarak(j),f=e.target.form;
     f.querySelectorAll('[name^=tr_]').forEach(i=>{i.value=j==='jauh'?0:b.transport||'';i.readOnly=j==='jauh';});
     f.querySelectorAll('[name^=uh_]').forEach(i=>{i.value=b.uangHarian;});
     $('#jarak-hint').textContent=hintJarak(j);},
