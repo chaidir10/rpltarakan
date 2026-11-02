@@ -471,6 +471,12 @@ a.stat:hover{border-color:var(--line2)}
   .bnav a.fab span{display:none}
   .bnav a.fab{color:var(--brand-ink)}
   .bnav a.fab svg{width:44px;height:44px;padding:11px;border-radius:14px;background:var(--brand);color:var(--brand-ink)}
+  .bnav a.fab-qr{color:var(--ink2)}.bnav a.fab-qr.on{color:var(--brand-text)}
+  .bnav a.fab-qr span{display:inline}
+  .bnav a.fab-qr svg{width:54px;height:54px;padding:13px;margin-top:-26px;border-radius:50%;box-shadow:0 0 0 4px var(--surface),var(--shadow2);stroke-width:2}
+  .fab-buat{position:fixed;z-index:39;right:16px;bottom:calc(74px + env(safe-area-inset-bottom));width:52px;height:52px;display:grid;place-items:center;border-radius:16px;background:var(--surface);color:var(--brand-text);border:1.5px solid var(--brand);box-shadow:var(--shadow2)}
+  .fab-buat svg{width:24px;height:24px}
+  .content{padding-bottom:76px}
   .bnav .cnt{position:absolute;top:6px;left:calc(50% + 6px);background:var(--bad);color:#fff;border-radius:99px;font-size:10px;font-weight:600;padding:0 5px;line-height:15px}
   .grid2,.grid3,.cols3,.perm-grid,.pend-grid{grid-template-columns:minmax(0,1fr)}
   .pend-grid{gap:18px}.pend-hero{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.pend-hero .n{font-size:20px}
@@ -1713,16 +1719,20 @@ const ttdData=(s,peran,id)=>{const at=Math.floor((s.jemputAt||s.dibuat||Date.now
 /* Pemeriksaan QR: hanya aplikasi ini yang bisa membaca isinya */
 let kamera=null;
 const jsqr=()=>{if(!window.jsQR)(0,eval)($('#lib-jsqr').textContent);return window.jsQR;};
-function hentikanKamera(){if(!kamera)return;kamera.aktif=false;kamera.stream&&kamera.stream.getTracks().forEach(t=>t.stop());kamera=null;}
+const labelKamera=on=>{const t=$('#qr-mulai');if(t)t.innerHTML=`${ic('qr')} ${on?'Tutup kamera':'Buka kamera'}`;const v=$('#qr-video');if(v)v.hidden=!on;};
+function hentikanKamera(){if(!kamera)return;kamera.aktif=false;kamera.stream&&kamera.stream.getTracks().forEach(t=>t.stop());kamera=null;labelKamera(false);}
+/* Di ponsel kamera langsung terbuka seperti pemindai QRIS; bila gagal, pilihan foto tetap tersedia */
+const kameraOtomatis=()=>{if(innerWidth<=860)actions.qrKamera({diam:true});};
 const hasilQr=d=>d?`<div class="alert ok">${ic('check')}<span><b>Tanda tangan sah.</b> QR ini diterbitkan aplikasi RPL Kapal.</span></div><dl class="kv mt"><dt>Penanda tangan</dt><dd class="strong">${esc(d.nama)}</dd><dt>Sebagai</dt><dd>${d.peran==='a'?'Agen':'Petugas'}</dd><dt>${d.peran==='a'?'Jabatan':'NIP'}</dt><dd>${esc(d.tambahan||'-')}</dd><dt>Kapal</dt><dd>${esc(d.kapal)}</dd><dt>Tgl pemeriksaan</dt><dd>${tglID(d.tgl)}</dd><dt>Ditandatangani</dt><dd>${waktu(d.at)}</dd></dl>`:`<div class="alert bad">${ic('alert')}<span><b>Tidak dikenali.</b> QR ini bukan tanda tangan yang diterbitkan aplikasi ini.</span></div>`;
 function tampilHasilQr(hasil){const b=$('#qr-hasil');if(!b)return;b.innerHTML=hasilQr(hasil?bacaQrTtd(hasil.binaryData):null);b.hidden=false;}
-const vVerif=()=>`<div class="stack"><div class="card"><div class="hd"><h2>Pindai tanda tangan QR</h2></div><div class="bd stack"><p class="small muted">Arahkan kamera ke QR pada surat pernyataan, atau pilih foto QR. Pemindai biasa tidak bisa membaca isinya.</p>
+const vVerif=()=>`<div class="stack"><div class="card"><div class="hd"><h2>Pindai tanda tangan QR</h2></div><div class="bd stack"><p class="small muted">Arahkan kamera ke QR pada surat pernyataan, atau pilih foto QR.</p>
   <video id="qr-video" class="qr-video" playsinline muted hidden></video>
   <div class="wrap-row"><button type="button" class="btn pri" id="qr-mulai" data-act="qrKamera">${ic('qr')} Buka kamera</button><label class="btn">${ic('upload')} Pilih foto QR<input type="file" accept="image/*" data-change="qrFoto" hidden></label></div>
   <div id="qr-hasil" aria-live="polite" hidden></div></div></div></div>`;
 function renderVerifPublik(){
-  const S=DB.settings;document.title='Verifikasi QR - '+S.appName;
-  $('#app').innerHTML=`<header class="top"><div class="top-in" style="max-width:640px"><a class="btn ghost icon" href="#/${halamanLalu}" aria-label="Kembali">${ic('back')}</a><img src="${appLogo()}" alt="" style="height:36px;max-width:96px;object-fit:contain;background:#fff;border-radius:8px;padding:2px 4px"><div class="grow"><b style="display:block;line-height:1.25;font-weight:650">${esc(S.satker)}</b><span class="small muted">Verifikasi tanda tangan QR</span></div></div></header><main class="content" style="max-width:704px">${vVerif()}</main>`;
+  const S=DB.settings;document.title='Scan QR - '+S.appName;
+  $('#app').innerHTML=`<header class="top"><div class="top-in" style="max-width:640px"><a class="btn ghost icon" href="#/${halamanLalu}" aria-label="Kembali">${ic('back')}</a><img src="${appLogo()}" alt="" style="height:36px;max-width:96px;object-fit:contain;background:#fff;border-radius:8px;padding:2px 4px"><div class="grow"><b style="display:block;line-height:1.25;font-weight:650">${esc(S.satker)}</b><span class="small muted">Scan QR surat pernyataan</span></div></div></header><main class="content" style="max-width:704px">${vVerif()}</main>`;
+  kameraOtomatis();
 }
 const bolehPernyataan=s=>s&&s.jemput==='ya'&&(!ME||bolehLihat(s));
 const daftarTtd=s=>`<div class="ttd-daftar"><div class="row between"><span class="small muted">Tanda tangan QR agen dan ${s.petugas.length} petugas terisi otomatis.</span><a class="btn sm ghost" href="#/verifikasi">${ic('qr')} Verifikasi</a></div></div>`;
@@ -1777,7 +1787,7 @@ function sortSimpan(t){
   scrollTo(0,y);
 }
 const ui={surat:{q:'',jenis:'',page:1},setoran:{q:'',status:'',page:1},agen:{q:'',kab:'',page:1},users:{q:'',role:''},petugas:{q:'',wilker:''},pick:[],riwayat:{q:''}};
-const NAV_SATKER=[['dash','Beranda','home'],['surat','Surat Tugas','file'],['setoran','Penerimaan','wallet'],['verifikasi','Verifikasi QR','qr']];
+const NAV_SATKER=[['dash','Beranda','home'],['surat','Surat Tugas','file'],['setoran','Penerimaan','wallet'],['verifikasi','Scan QR','qr']];
 const NAV_SET=[
   ['set/users','Manajemen User','users','set.users','Akun login admin dan user wilayah kerja','m'],
   ['set/petugas','Manajemen Petugas','user','set.petugas','Pegawai yang ditugaskan pada surat tugas','m'],
@@ -1814,7 +1824,7 @@ function route(){
   if(a==='surat'&&b){const s=findST(b);return s&&bolehLihat(s)?go(namaKapal(s),vDetail(s),'surat'):notFound('surat');}
   if(a==='surat')return go('Daftar Surat Tugas',vSurat(),null,()=>renderSuratList());
   if(a==='setoran')return go('Penerimaan/Penyetoran Dana',vSetoran(),null,()=>renderSetoranList());
-  if(a==='verifikasi')return go('Verifikasi QR',vVerif(),halamanLalu||'dash');
+  if(a==='verifikasi')return go('Scan QR',vVerif(),halamanLalu||'dash',kameraOtomatis);
   if(a==='akun')return go('Akun Saya',vAkun());
   if(a==='pengaturan'){const it=setItems();return it.length?go('Manajemen & Pengaturan',vHub(it)):denied();}
   if(a==='set'){
@@ -1841,13 +1851,13 @@ function renderShell(title,html,back,after){
   const side=`<aside class="side"><a class="brand" href="#/"><img src="${appLogo()}" alt=""><span class="grow"><b>${esc(S.appName)}</b><small>${esc(S.appSub)}</small></span></a>
     <nav class="nav" aria-label="Menu utama">${it.map((n,i)=>link(n,i===0?need:0)).join('')}${grup('Manajemen','m')}${grup('Pengaturan','p')}</nav>
     <div class="side-foot"><a class="me" href="#/akun"><span class="ava">${esc(initials(ME.nama))}</span><span class="grow"><b>${esc(ME.nama)}</b><span class="small muted">${peranTeks}</span></span></a><button class="btn ghost icon" data-act="logout" aria-label="Keluar" title="Keluar">${ic('logout')}</button></div></aside>`;
-  const bn=[['dash','Beranda','home',need],['surat','Surat','file'],...(can('st.create')?[['surat/baru','Buat','plus',0,'fab']]:[]),['setoran','Setoran','wallet'],sets.length?['pengaturan','Atur','cog']:['akun','Akun','user']];
+  const bn=[['dash','Beranda','home',need],['surat','Surat','file'],['verifikasi','Scan QR','qr',0,'fab fab-qr'],['setoran','Setoran','wallet'],sets.length?['pengaturan','Atur','cog']:['akun','Akun','user']];
   const onKey=k=>k==='surat'?h==='surat'||(/^surat\//.test(h)&&h!=='surat/baru'):k==='pengaturan'?h==='pengaturan'||h.startsWith('set/'):h===k;
   const bnav=`<nav class="bnav" aria-label="Menu bawah">${bn.map(n=>`<a href="#/${n[0]}" aria-label="${n[1]}" class="${onKey(n[0])||(n[0]==='dash'&&h==='')?'on':''} ${n[4]||''}">${ic(n[2])}<span>${n[1]}</span>${n[3]?`<span class="cnt">${n[3]}</span>`:''}</a>`).join('')}</nav>`;
   const themeIc=document.documentElement.dataset.theme==='dark'?'sun':'moon';
   const M=pageMeta;pageMeta={};
   const top=`<header class="top"><div class="top-in">${back?`<a class="btn ghost icon back ${back==='pengaturan'?'mob':''}" href="#/${back}" aria-label="Kembali">${ic('back')}</a>`:''}<div class="grow"><h1>${esc(title)}</h1>${M.sub?`<p class="sub">${esc(M.sub)}</p>`:''}</div>${M.act?`<div class="page-act">${M.act}</div>`:''}<button class="btn ghost icon" data-act="toggleTheme" aria-label="Ganti tema">${ic(themeIc)}</button><a class="btn ghost icon mob" href="#/akun" aria-label="Akun">${ic('user')}</a></div></header>`;
-  $('#app').innerHTML=`<div class="shell">${side}<div class="main">${top}<main class="content">${html}</main></div></div>${bnav}`;
+  $('#app').innerHTML=`<div class="shell">${side}<div class="main">${top}<main class="content">${html}</main></div></div>${can('st.create')&&(h==='dash'||h==='surat')?`<a class="fab-buat mob" href="#/surat/baru" aria-label="Buat surat tugas">${ic('plus')}</a>`:''}${bnav}`;
   scrollTo(0,0);after&&after();muatThumb();
 }
 const initials=n=>String(n||'?').replace(/^(dr\.|PT\.?|CV\.?|TN\.?)\s*/i,'').split(/\s+/).slice(0,2).map(w=>w[0]||'').join('').toUpperCase();
@@ -1864,7 +1874,7 @@ function renderLogin(){
     ${field('Username','login','',{req:1,ac:'username'})}
     ${field('Kata sandi','password','',{req:1,type:'password',ac:'current-password'})}
     <button class="btn pri block">Masuk</button>
-    <a class="small" href="#/verifikasi" style="display:inline-block;margin-top:12px">Verifikasi tanda tangan QR</a>
+    <a class="btn block" href="#/verifikasi" style="margin-top:12px">${ic('qr')} Scan / upload QR surat pernyataan</a>
     <div class="demo"><div class="lbl">Akun contoh prototipe</div><div class="wrap-row mt2">
       <button type="button" class="btn sm" data-act="demoLogin" data-l="admin" data-p="admin123">Admin satker</button>
       ${WILKER.map(w=>`<button type="button" class="btn sm" data-act="demoLogin" data-l="${w.username}" data-p="user123">Wilker ${esc(w.nama)}</button>`).join('')}
@@ -2318,11 +2328,11 @@ const actions={
   previewNominatif(el){const s=findST(el.dataset.id);if(!s||!s.tagihan||!bolehLihat(s))return;
     actions._previewDl=()=>unduhNominatif(s);
     openModal({title:`Daftar Nominatif - ${s.kapal}`,wide:true,body:`<div class="bukti-view"><iframe src="${urlBerkas(pdfNominatif(s))}" title="Daftar nominatif"></iframe></div>`,foot:`<button class="btn" data-act="closeModal">Tutup</button><button class="btn pri" data-act="_previewDl">${ic('down')} Unduh PDF</button>`});},
-  async qrKamera(){if(kamera)return hentikanKamera();
-    try{const stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}}),v=$('#qr-video');kamera={stream,aktif:true};v.hidden=false;v.srcObject=stream;await v.play();
+  async qrKamera(el){if(kamera)return hentikanKamera();
+    try{const stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}}),v=$('#qr-video');if(!v||kamera){stream.getTracks().forEach(t=>t.stop());return;}kamera={stream,aktif:true};labelKamera(true);v.srcObject=stream;await v.play();
       const kan=document.createElement('canvas'),x=kan.getContext('2d',{willReadFrequently:true}),baca=jsqr();
-      const putar=()=>{if(!kamera||!kamera.aktif)return;if(v.videoWidth){kan.width=v.videoWidth;kan.height=v.videoHeight;x.drawImage(v,0,0);const r=baca(x.getImageData(0,0,kan.width,kan.height).data,kan.width,kan.height);if(r){tampilHasilQr(r);hentikanKamera();v.hidden=true;return;}}setTimeout(putar,200);};putar();
-    }catch(e){hentikanKamera();toast('Kamera tidak bisa dibuka. Gunakan pilihan foto QR.','bad');}},
+      const putar=()=>{if(!kamera||!kamera.aktif)return;if(v.videoWidth){kan.width=v.videoWidth;kan.height=v.videoHeight;x.drawImage(v,0,0);const r=baca(x.getImageData(0,0,kan.width,kan.height).data,kan.width,kan.height);if(r){tampilHasilQr(r);hentikanKamera();return;}}setTimeout(putar,200);};putar();
+    }catch(e){hentikanKamera();if(!el||!el.diam)toast('Kamera tidak bisa dibuka. Gunakan pilihan foto QR.','bad');}},
   async dlPernyataan(el){const s=findST(el.dataset.id);if(!bolehPernyataan(s))return;
     try{downloadBlob(await pdfPernyataan(s),`SURAT PERNYATAAN ${s.kapal}.pdf`.replace(/[\\/:*?"<>|]/g,'-'));toast('Surat pernyataan diunduh');}catch(e){toast('Surat pernyataan gagal dibuat','bad');}},
   async previewPernyataan(el){const s=findST(el.dataset.id);if(!bolehPernyataan(s))return;
