@@ -117,6 +117,8 @@ input[type=file].inp{padding:6px}
 .foot-act{display:flex;justify-content:flex-end;gap:8px}
 .seg{display:inline-flex;padding:3px;background:var(--line);border-radius:11px;gap:2px;max-width:100%}
 .seg button{border:0;background:transparent;min-height:32px;padding:4px 13px;border-radius:8px;font-weight:550;color:var(--ink2);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap}
+#orang-seg{flex:none}#orang-seg button{white-space:nowrap}
+@media (max-width:380px){#orang-seg button{padding-inline:9px}}
 .seg button.on{background:var(--surface);color:var(--ink);box-shadow:var(--shadow)}
 .jenis-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
 .opt{display:block;text-align:left;width:100%;padding:12px 14px;border:1px solid var(--line2);border-radius:var(--r2);background:var(--surface);cursor:pointer}
@@ -1029,7 +1031,7 @@ const namaKapal=s=>`${s.kapal} (GT.${s.gt})`;
 const jarakST=s=>s.jarak==='jauh'?'jauh':'dekat';
 /* Lebih dari 4 mil: biaya luar kota masuk kolom Uang Harian dan transport lokal tidak berlaku */
 const biayaJarak=j=>j==='jauh'?{transport:0,uangHarian:DB.settings.tarifLuar||0}:{transport:DB.settings.tarif||0,uangHarian:0};
-const pilihJarak=(val,change='')=>`<div class="field span2"><label class="req" for="f_jarak">Kategori jarak pemeriksaan</label><select class="inp" id="f_jarak" name="jarak" ${change}>${Object.entries(JARAK).map(([k,l])=>`<option value="${k}" ${val===k?'selected':''}>${l}</option>`).join('')}</select></div>`;
+const pilihJarak=(val,change='')=>`<div class="field"><label class="req" for="f_jarak">Kategori jarak pemeriksaan</label><select class="inp" id="f_jarak" name="jarak" ${change}>${Object.entries(JARAK).map(([k,l])=>`<option value="${k}" ${val===k?'selected':''}>${l}</option>`).join('')}</select></div>`;
 const hintJarak=j=>j==='jauh'?`Rp ${rp(DB.settings.tarifLuar||0)} per orang masuk kolom Uang Harian. Transport Lokal tidak berlaku.`:'Biaya memakai Transport Lokal.';
 const biayaBaris=r=>(+r.transport||0)+(+r.penginapan||0)+(+r.uangHarian||0);
 const totalTagihan=t=>t?t.rincian.reduce((a,r)=>a+biayaBaris(r),0):0;
@@ -1135,9 +1137,10 @@ function teksIntro(s,L){
 }
 function blokPetugasInline(s){
   const out=[];
+  const banyak=s.petugas.length>1;
   s.petugas.forEach((id,i)=>{const u=petugasOf(id)||{};
     const rows=[['nama',u.nama],['NIP',u.nip],['pangkat/golongan',u.pangkat],['jabatan',u.jabatan],['unit kerja','Balai Kekarantinaan Kesehatan Kelas I Tarakan']];
-    rows.forEach(([k,v],r)=>out.push(P((r===0?`${i+1}.\t`:'\t')+`${k}\t:\t${v||''}`,{left:3800,hanging:3113,tabs:[1077,3528,3800],after:r===4?240:0})));
+    rows.forEach(([k,v],r)=>out.push(P((r===0&&banyak?`${i+1}.\t`:'\t')+`${k}\t:\t${v||''}`,{left:3800,hanging:3113,tabs:[1077,3528,3800],after:r===4?240:0})));
   });
   return out;
 }
@@ -1229,13 +1232,21 @@ function untukPELNI(s,L){
   ];
 }
 const DEMIKIAN='Demikian surat tugas ini dibuat untuk dilaksanakan dengan baik dan penuh tanggung jawab.';
+const barisTeks=l=>l.reduce((n,b)=>n+Math.ceil(b.runs.map(r=>r.t).join('').length/58),0);
+const BARIS_SATU_HALAMAN=25;
 function docST(s){
   const k=kunciJenis(s.jenis),isCop=k==='cop',isPen=k==='penumpang';
-  const L=isCop?LAYOUT.cop:isPen?LAYOUT.pelni:LAYOUT.sscec,inline=s.petugas.length===2;
+  const L=isCop?LAYOUT.cop:isPen?LAYOUT.pelni:LAYOUT.sscec,inline=s.petugas.length<3;
   const untuk=isCop?untukCOP(s,L):isPen?untukPELNI(s,L):k==='sscec+p3k'?untukSSCEC(s,L):untukUmum(s,L);
   const p1=[...nomorKepala(),P(teksIntro(s,L),{first:720,align:'both',after:inline?240:0})];
   if(inline){
     p1.push(...blokPetugasInline(s),...untuk);
+    // Satu petugas: tanda tangan ikut di halaman pertama selama masih muat
+    const nBaris=barisTeks([p1[p1.length-1-blokPetugasInline(s).length-untuk.length],...untuk]);
+    if(!isPen&&s.petugas.length===1&&nBaris<=BARIS_SATU_HALAMAN){
+      p1.push(P(DEMIKIAN,{first:720,align:'both',before:nBaris>21?120:200}),...blokTtd(s,{...L,sign:4320,ttd:4770},nBaris>21?{tanggal:true,namaTag:true,gapAtas:60,gapTtd:360,gapNama:520}:{tanggal:true,namaTag:true,gapAtas:60,gapTtd:910,gapNama:765}));
+      return{kop:true,pages:[p1],foot:[0]};
+    }
     if(isPen){ // tidak ada contoh; muat di satu halaman
       p1.push(P(DEMIKIAN,{first:720,align:'both',before:200}),...blokTtd(s,{...L,sign:4708},{tanggal:true,namaTag:true}));
       return{kop:true,pages:[p1],foot:[0]};
@@ -1250,7 +1261,7 @@ function docST(s){
   // Surat kombinasi: Demikian sampai nama pejabat berpindah halaman sebagai satu blok
   const ttd=rapat?penutup.map((b,i)=>i<penutup.length-1?{...b,keep:1}:b):penutup;
   // Kombinasi sangat panjang: tanda tangan pindah ke halaman sendiri agar tidak terpotong
-  const baris=untuk.reduce((n,b)=>n+Math.ceil(b.runs.map(r=>r.t).join('').length/58),0);
+  const baris=barisTeks(untuk);
   if(baris>26)return{kop:true,pages:[p1,[P('',{after:240}),...ttd],blokLampiran(s,L)],foot:[0],pageNum:true};
   p1.push(...ttd);
   return{kop:true,pages:[p1,blokLampiran(s,L)],foot:[0],pageNum:true};
@@ -1747,6 +1758,7 @@ function vSuratForm(s){
     <div id="jenis-grid">${jenisButtons()}</div>
     <div class="row between"><span class="lbl">Jumlah petugas</span><div class="seg" id="orang-seg">${orangButtons()}</div></div>
     <p class="hint" id="format-hint">${formatHint()}</p>
+    ${pilihJarak(jarakST(v))}
   </div></div>
   <div class="card"><div class="hd"><h2>Surat dari agen</h2></div><div class="bd grid2">
     <div class="field span2"><label class="req" for="f_agenQ">Agen Kapal</label><div class="combo"><input class="inp" id="f_agenQ" data-input="agenCombo" autocomplete="off" placeholder="Ketik nama agen, kota, atau email" value="${a?esc(a.nama):''}"><div class="combo-list" id="agen-list" hidden></div></div><input type="hidden" name="agenId" value="${v.agenId||''}"></div>
@@ -1761,7 +1773,6 @@ function vSuratForm(s){
     ${field('Posisi Kapal','posisi',v.posisi,{req:1,list:'posisi-list',ph:'REDE TARAKAN'})}
     <datalist id="posisi-list">${DB.settings.posisi.map(p=>`<option value="${esc(p)}">`).join('')}</datalist>
     ${field('Tanggal Pemeriksaan','tanggal',v.tanggal,{req:1,type:'date'})}
-    ${pilihJarak(jarakST(v))}
   </div></div>
   </div><div class="stack sticky">
   <div class="card"><div class="hd"><h2>Petugas</h2><span class="small muted" id="pick-count"></span></div><div class="bd stack">
@@ -1776,9 +1787,10 @@ function vSuratForm(s){
   </div></form>`;
 }
 const jenisButtons=()=>GRUP_JENIS.map(([g,judul])=>`<div class="jenis-grup"><div class="lbl">${judul}</div><div class="jenis-grid">${URUT_JENIS.filter(k=>JENIS[k].grup===g).map(k=>{const j=JENIS[k],on=formJenis.includes(k);return `<button type="button" class="opt ${on?'on':''}" data-act="setJenis" data-k="${k}" aria-pressed="${on}">${on?ic('check'):''}<b>${esc(j.label)}</b><small>${esc(j.nama)}</small></button>`;}).join('')}</div></div>`).join('');
-const orangButtons=()=>[2,3].map(n=>`<button type="button" class="${formOrang===n?'on':''}" data-act="setOrang" data-n="${n}" aria-pressed="${formOrang===n}">${n} orang</button>`).join('');
+const orangButtons=()=>[1,2,3].map(n=>`<button type="button" class="${formOrang===n?'on':''}" data-act="setOrang" data-n="${n}" aria-pressed="${formOrang===n}">${n} orang</button>`).join('');
 const CONTOH={cop:3,'sscec+p3k':2,penumpang:3};
-const formatHint=()=>{if(!formJenis.length)return 'Pilih jenis pemeriksaan terlebih dahulu.';const lay=formOrang===2?'Nama petugas ditulis langsung di badan surat.':'Nama petugas ditulis pada lampiran halaman 2.';
+const formatHint=()=>{if(!formJenis.length)return 'Pilih jenis pemeriksaan terlebih dahulu.';const lay=formOrang<3?'Nama petugas ditulis langsung di badan surat.':'Nama petugas ditulis pada lampiran halaman 2.';
+  if(formOrang===1)return lay+' Format 1 orang tidak ada di contoh, jadi disusun dari format 2 orang.';
   return lay+(CONTOH[kunciJenis(formJenis)]===formOrang?' Format ini sama dengan contoh surat.':' Kombinasi ini tidak ada di contoh, jadi disusun dari format yang paling dekat.');};
 function afterSuratForm(){renderPicker();}
 function renderPicker(){
@@ -2120,7 +2132,7 @@ const actions={
     openModal({title:'Generate Tagihan',form:'tagihan',wide:true,body:`<input type="hidden" name="id" value="${s.id}"><div class="stack">
       <div class="grid3">${field('Nomor Tugas Pemeriksaan','nomorST',s.nomor,{req:1,ph:'Nomor surat tugas dari Srikandi',ro:!!s.nomor})}
       ${field('Tanggal tagihan','tanggal',t?t.tanggal:today(),{req:1,type:'date'})}${field('Tempat','tempat',t&&t.tempat?t.tempat:(wk.tempat||''),{req:1})}</div>
-      <div class="grid2">${pilihJarak(j,'data-change="tagihanJarak"')}</div><p class="hint" id="jarak-hint" style="margin-top:-6px">${hintJarak(j)}</p>
+      ${pilihJarak(j,'data-change="tagihanJarak"')}<p class="hint" id="jarak-hint" style="margin-top:-6px">${hintJarak(j)}</p>
       <div class="stack" style="gap:10px"><span class="lbl">Rincian biaya per petugas (Rp)</span>
       ${s.petugas.map(id=>{const u=petugasOf(id)||{};return `<div class="biaya-baris"><div class="strong">${esc(u.nama||'')}<div class="small muted" style="font-weight:400">${esc(u.pangkat||'')}${u.nip?' | NIP '+esc(u.nip):''}</div></div><div class="grid3">${field('Transport Lokal','tr_'+id,nilai(id,'transport'),{req:1,type:'number',min:0,mode:'numeric',ro:j==='jauh'})}${field('Penginapan','pg_'+id,nilai(id,'penginapan'),{type:'number',min:0,mode:'numeric'})}${field('Uang Harian','uh_'+id,nilai(id,'uangHarian'),{type:'number',min:0,mode:'numeric'})}</div></div>`;}).join('')}</div>
       <p class="hint">Tagihan langsung terbit tanpa pengesahan. Setelah disimpan, kirim WA ke agen dan unduh daftar nominatif.</p></div>`,
