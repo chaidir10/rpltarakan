@@ -1576,8 +1576,8 @@ async function pdfPernyataan(s){
   const pe=t=>String(t).replace(/[^\x20-\x7e]/g,'?').replace(/([\\()])/g,'\\$1');
   const tulis=(x,y,t,o={})=>{const sz=o.size||FS,w=lebarTeks(t,sz,o.bold),xx=o.align==='c'?x-w/2:o.align==='r'?x-w:x;halaman[halaman.length-1].push(`BT /${o.bold?"F2":"F1"} ${sz} Tf ${(o.tw||0).toFixed(3)} Tw ${xx.toFixed(2)} ${(PH-y).toFixed(2)} Td (${pe(t)}) Tj ET`);};
   const garis=(x1,y1,x2,y2)=>halaman[halaman.length-1].push(`.6 w ${x1.toFixed(2)} ${(PH-y1).toFixed(2)} m ${x2.toFixed(2)} ${(PH-y2).toFixed(2)} l S`);
-  let y=28+kop.H+24;
-  const cukup=h=>{if(y+h>PH-40){halaman.push([]);y=60;}};
+  let y=28+kop.H+18;
+  const cukup=h=>{if(y+h>PH-30){halaman.push([]);y=60;}};
   const paragraf=(t,indent=36)=>{const lebar=R-L,ls=[];let b='';String(t).split(/\s+/).filter(Boolean).forEach(k=>{const w=lebar-(ls.length?0:indent),u=b?b+' '+k:k;if(lebarTeks(u,FS)<=w||!b)b=u;else{ls.push(b);b=k;}});if(b)ls.push(b);
     ls.forEach((l,i)=>{cukup(LH);const x=L+(i?0:indent),sp=l.split(' ').length-1,tw=i<ls.length-1&&sp?(R-x-lebarTeks(l,FS))/sp:0;tulis(x,y,l,{tw});y+=LH;});};
   const kv=(k,v)=>{const ls=bungkus(v||'-',FS,R-L-140);cukup(LH*ls.length);tulis(L+18,y,k);tulis(L+130,y,':');ls.forEach(l=>{tulis(L+140,y,l);y+=LH;});};
@@ -1593,14 +1593,19 @@ async function pdfPernyataan(s){
     isi.forEach((ls,i)=>ls.forEach((l,j)=>tulis(i===1||i===4?K[i]+4:(K[i]+K[i+1])/2,y+TL+1+j*TL,l,{size:TS,bold:o.bold,align:i===1||i===4?'':'c'})));
     K.forEach(x=>garis(x,y,x,y+h));y+=h;garis(L,y,R,y);};
   barisTabel(['No','Nama Petugas','NIP','Pangkat/Gol.','Jabatan'],{bold:true});
-  s.petugas.forEach((id,i)=>{const u=petugasOf(id)||{};barisTabel([String(i+1),u.nama,u.nip,u.pangkat,u.jabatan]);});y+=18;
+  s.petugas.forEach((id,i)=>{const u=petugasOf(id)||{};barisTabel([String(i+1),u.nama,u.nip,u.pangkat,u.jabatan]);});y+=14;
   paragraf('Atas penyediaan transportasi tersebut, biaya transportasi petugas tidak ditagihkan melalui Rekening Pemerintah Lainnya (RPL).');y+=4;
-  const agen=bungkus(s.agenSurat||a.nama||'',FS,R-325);cukup(LH*2+14+LH*(2+agen.length)+56);
+  const agen=bungkus(s.agenSurat||a.nama||'',FS,R-340);
+  const ptg=s.petugas.map(id=>{const u=petugasOf(id)||{};return{nama:bungkus(u.nama||'',TS,134),nip:u.nip};});
+  const tinggiPtg=ptg.reduce((n,p)=>n+p.nama.length*TL+(p.nip?TL:0)+6,0);
+  cukup(LH*2+14+Math.max(LH*2+6+tinggiPtg,LH*(2+agen.length)+50+LH));
   paragraf('Demikian surat pernyataan ini dibuat dengan sebenarnya untuk dipergunakan sebagaimana mestinya.');y+=14;
-  // Tanda tangan agen
-  const tempat=(wk.tempat||'').toLowerCase().replace(/(^|\s)\S/g,m=>m.toUpperCase());
-  tulis(325,y,`${tempat}, ${tgl2(s.tanggal)}`);y+=LH;tulis(325,y,'Yang membuat pernyataan,');y+=LH;agen.forEach(l=>{tulis(325,y,l);y+=LH;});y+=50;
-  tulis(325,y,'(........................................)');
+  // Tanda tangan petugas di kiri, agen di kanan
+  const tempat=(wk.tempat||'').toLowerCase().replace(/(^|\s)\S/g,m=>m.toUpperCase()),y0=y,XA=340;
+  tulis(XA,y,`${tempat}, ${tgl2(s.tanggal)}`);y+=LH;tulis(L,y,'Petugas yang bertugas,');tulis(XA,y,'Yang membuat pernyataan,');y+=LH;
+  agen.forEach(l=>{tulis(XA,y,l);y+=LH;});tulis(XA,y+50,'(................................)');
+  let yp=y0+LH*2+6;
+  ptg.forEach((p,i)=>{tulis(L,yp,`${i+1}.`,{size:TS});p.nama.forEach((l,k)=>tulis(L+14,yp+k*TL,l,{size:TS}));const yb=yp+(p.nama.length-1)*TL;if(p.nip)tulis(L+14,yb+TL,`NIP ${p.nip}`,{size:TS});tulis(L+154,yb+(p.nip?TL:0),'.......................',{size:TS});yp=yb+(p.nip?TL:0)+TL+6;});
   // Berkas PDF
   const biner=[];for(let i=0;i<kop.bytes.length;i+=8192)biner.push(String.fromCharCode.apply(null,kop.bytes.subarray(i,i+8192)));
   const font=b=>`<< /Type /Font /Subtype /Type1 /BaseFont /${b} /Encoding /WinAnsiEncoding >>`;
@@ -2021,7 +2026,7 @@ function vAgenKapal(s){
   if(k==='konfirmasi')aksi=`<div class="card"><div class="hd"><h2>Formulir biaya layanan</h2></div><div class="bd stack"><p>Apakah agen menyediakan transportasi untuk <b class="strong">${s.petugas.length} petugas</b> pemeriksa kapal ini?</p>
     <div class="grid2 pilih-trans"><button class="opt ya" data-act="agenJemput" data-id="${s.id}" data-v="ya"><span class="pt-ic">${ic('mobil')}</span><b>Disediakan agen</b><small>Agen menjemput dan mengantar petugas.</small><span class="tag ok">Tanpa tagihan (Rp 0)</span></button>
     <button class="opt tidak" data-act="agenJemput" data-id="${s.id}" data-v="tidak"><span class="pt-ic">${ic('struk')}</span><b>Tidak disediakan</b><small>Biaya transportasi petugas ditagihkan lewat invoice.</small><span class="tag warn">Ada tagihan</span></button></div></div></div>`;
-  else if(k==='jemput')aksi=`<div class="alert ok">${ic('check')}<span>Transportasi petugas disediakan agen. Tidak ada tagihan.</span></div><div class="card"><div class="hd"><h2>Surat Pernyataan</h2></div><div class="bd stack" style="gap:10px"><p class="small muted">Unduh dan tanda tangani surat pernyataan bahwa petugas dijemput dan difasilitasi transportasinya oleh agen.</p>${tombolPernyataan(s)}</div></div>`;
+  else if(k==='jemput')aksi=`<div class="alert ok">${ic('check')}<span>Transportasi petugas disediakan agen. Tidak ada tagihan.</span></div><div class="card"><div class="hd"><h2>Surat Pernyataan</h2></div><div class="bd stack" style="gap:10px"><p class="small muted">Unduh surat pernyataan bahwa petugas dijemput dan difasilitasi transportasinya oleh agen, lalu tanda tangani bersama petugas yang bertugas.</p>${tombolPernyataan(s)}</div></div>`;
   else if(k==='perlu')aksi=`<div class="alert info">${ic('file')}<span>Tagihan sedang disiapkan petugas. Anda akan menerima notifikasi WhatsApp setelah terbit.</span></div>`;
   if(!t)return `<div class="wrap-row" style="margin-bottom:12px">${stageTag(s)}</div><div class="stack">${aksi}
   <div class="card"><div class="hd"><h2>Informasi Kapal</h2></div><div class="bd"><dl class="kv"><dt>Kapal</dt><dd>${esc(namaKapal(s))}</dd><dt>Posisi</dt><dd>${esc(s.posisi)}</dd><dt>Tgl pemeriksaan</dt><dd>${tglID(s.tanggal)}</dd><dt>Jumlah petugas</dt><dd>${s.petugas.length} orang</dd><dt>Surat tugas</dt><dd>${esc(s.nomor||'Dalam proses')}</dd></dl></div></div></div>`;
