@@ -1722,7 +1722,7 @@ const vVerif=()=>`<div class="stack"><div class="card"><div class="hd"><h2>Pinda
   <div id="qr-hasil" aria-live="polite" hidden></div></div></div></div>`;
 function renderVerifPublik(){
   const S=DB.settings;document.title='Verifikasi QR - '+S.appName;
-  $('#app').innerHTML=`<header class="top"><div class="top-in" style="max-width:640px"><img src="${appLogo()}" alt="" style="height:36px;max-width:96px;object-fit:contain;background:#fff;border-radius:8px;padding:2px 4px"><div class="grow"><b style="display:block;line-height:1.25;font-weight:650">${esc(S.satker)}</b><span class="small muted">Verifikasi tanda tangan QR</span></div></div></header><main class="content" style="max-width:704px">${vVerif()}</main>`;
+  $('#app').innerHTML=`<header class="top"><div class="top-in" style="max-width:640px"><a class="btn ghost icon" href="#/${halamanLalu}" aria-label="Kembali">${ic('back')}</a><img src="${appLogo()}" alt="" style="height:36px;max-width:96px;object-fit:contain;background:#fff;border-radius:8px;padding:2px 4px"><div class="grow"><b style="display:block;line-height:1.25;font-weight:650">${esc(S.satker)}</b><span class="small muted">Verifikasi tanda tangan QR</span></div></div></header><main class="content" style="max-width:704px">${vVerif()}</main>`;
 }
 const bolehPernyataan=s=>s&&s.jemput==='ya'&&(!ME||bolehLihat(s));
 const daftarTtd=s=>`<div class="ttd-daftar"><div class="row between"><span class="small muted">Tanda tangan QR agen dan ${s.petugas.length} petugas terisi otomatis.</span><a class="btn sm ghost" href="#/verifikasi">${ic('qr')} Verifikasi</a></div></div>`;
@@ -1796,10 +1796,12 @@ const LOGO_APP=document.getElementById('favicon').getAttribute('href');
 const appLogo=()=>DB.settings.appLogo?DB.settings.appLogo.url:LOGO_APP;
 const perluSatker=s=>['perlu','validasi'].includes(stage(s))||lewatBatas(s);
 function needCount(){return stSaya().filter(perluSatker).length;}
+let halamanLalu='';
 function route(){
   const ikon=document.getElementById('favicon');if(ikon.getAttribute('href')!==appLogo())ikon.setAttribute('href',appLogo());
   const h=(location.hash||'').replace(/^#\/?/,'');
   hentikanKamera();
+  if(h!=='verifikasi')halamanLalu=h;
   const tautan=h.match(/^t\/(.*)$/);
   if(h==='verifikasi'&&!ME){closeModal();renderVerifPublik();return;}
   if(tautan){closeModal();renderTautan(tautan[1]);return;}
@@ -1812,7 +1814,7 @@ function route(){
   if(a==='surat'&&b){const s=findST(b);return s&&bolehLihat(s)?go(namaKapal(s),vDetail(s),'surat'):notFound('surat');}
   if(a==='surat')return go('Daftar Surat Tugas',vSurat(),null,()=>renderSuratList());
   if(a==='setoran')return go('Penerimaan/Penyetoran Dana',vSetoran(),null,()=>renderSetoranList());
-  if(a==='verifikasi')return go('Verifikasi QR',vVerif());
+  if(a==='verifikasi')return go('Verifikasi QR',vVerif(),halamanLalu||'dash');
   if(a==='akun')return go('Akun Saya',vAkun());
   if(a==='pengaturan'){const it=setItems();return it.length?go('Manajemen & Pengaturan',vHub(it)):denied();}
   if(a==='set'){
