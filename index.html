@@ -1576,7 +1576,7 @@ async function kopJpeg(){
 }
 async function pdfPernyataan(s){
   const kop=await kopJpeg(),a=agenOf(s.agenId)||{},wk=WILKER.find(w=>w.id===s.wilker)||{};
-  const PH=842,L=85,R=524,FS=11,LH=14,halaman=[[]];
+  const PH=842,L=85,R=524,FS=11,LH=13.5,halaman=[[]];
   const pe=t=>String(t).replace(/[^\x20-\x7e]/g,'?').replace(/([\\()])/g,'\\$1');
   const tulis=(x,y,t,o={})=>{const sz=o.size||FS,w=lebarTeks(t,sz,o.bold),xx=o.align==='c'?x-w/2:o.align==='r'?x-w:x;halaman[halaman.length-1].push(`BT /${o.bold?"F2":"F1"} ${sz} Tf ${(o.tw||0).toFixed(3)} Tw ${xx.toFixed(2)} ${(PH-y).toFixed(2)} Td (${pe(t)}) Tj ET`);};
   const garis=(x1,y1,x2,y2)=>halaman[halaman.length-1].push(`.6 w ${x1.toFixed(2)} ${(PH-y1).toFixed(2)} m ${x2.toFixed(2)} ${(PH-y2).toFixed(2)} l S`);
@@ -1590,29 +1590,29 @@ async function pdfPernyataan(s){
   paragraf('Yang bertanda tangan di bawah ini:',0);y+=4;
   kv('Nama Agen',s.agenSurat||a.nama);kv('Jabatan',JABATAN_AGEN);kv('Alamat',a.alamat);kv('Telepon',a.telp);y+=8;
   paragraf(`Dengan ini menyatakan dengan sebenarnya bahwa petugas ${DB.settings.kop.l4||DB.settings.satker} yang namanya tercantum di bawah ini benar dijemput dan difasilitasi transportasinya oleh perusahaan kami dalam pelaksanaan pemeriksaan kapal, dengan rincian sebagai berikut:`);y+=4;
-  kv('Nama Kapal',namaKapal(s));kv('Posisi Kapal',s.posisi);kv('Tanggal Pemeriksaan',hariTgl(s.tanggal));kv('Jenis Pemeriksaan',urutJenis(s.jenis).map(k=>JENIS[k].label).join(', '));kv('Surat Tugas',s.nomor?`${s.nomor}, ${tgl2(s.tglST)}`:'Dalam proses');kv('Surat Agen',`${s.noSurat}, ${tgl2(s.tglAgen)}`);kv('Wilayah Kerja',wkNama(s.wilker));y+=10;
+  kv('Nama Kapal',namaKapal(s));kv('Posisi Kapal',s.posisi);kv('Tanggal Pemeriksaan',hariTgl(s.tanggal));kv('Jenis Pemeriksaan',urutJenis(s.jenis).map(k=>JENIS[k].label).join(', '));kv('Surat Tugas',s.nomor?`${s.nomor}, ${tgl2(s.tglST)}`:'Dalam proses');kv('Surat Agen',`${s.noSurat}, ${tgl2(s.tglAgen)}`);kv('Wilayah Kerja',wkNama(s.wilker));y+=6;
   // Daftar petugas
   const K=[L,L+22,L+138,L+242,L+322,R],TS=9.5,TL=12;
-  const barisTabel=(sel,o={})=>{const isi=sel.map((t,i)=>bungkus(t||'-',TS,K[i+1]-K[i]-8)),h=Math.max(...isi.map(l=>l.length))*TL+8;cukup(h);garis(L,y,R,y);
-    isi.forEach((ls,i)=>ls.forEach((l,j)=>tulis(i===1||i===4?K[i]+4:(K[i]+K[i+1])/2,y+TL+1+j*TL,l,{size:TS,bold:o.bold,align:i===1||i===4?'':'c'})));
+  const barisTabel=(sel,o={})=>{const isi=sel.map((t,i)=>bungkus(t||'-',TS,K[i+1]-K[i]-8)),h=Math.max(...isi.map(l=>l.length))*TL+6;cukup(h);garis(L,y,R,y);
+    isi.forEach((ls,i)=>ls.forEach((l,j)=>tulis(i===1||i===4?K[i]+4:(K[i]+K[i+1])/2,y+TL+j*TL,l,{size:TS,bold:o.bold,align:i===1||i===4?'':'c'})));
     K.forEach(x=>garis(x,y,x,y+h));y+=h;garis(L,y,R,y);};
   barisTabel(['No','Nama Petugas','NIP','Pangkat/Gol.','Jabatan'],{bold:true});
   s.petugas.forEach((id,i)=>{const u=petugasOf(id)||{};barisTabel([String(i+1),u.nama,u.nip,u.pangkat,u.jabatan]);});y+=10;
   paragraf('Atas penyediaan transportasi tersebut, biaya transportasi petugas tidak ditagihkan melalui Rekening Pemerintah Lainnya (RPL).');y+=4;
-  cukup(LH*2+10+LH+2+5+68+32);
+  const SISI=s.petugas.length>2?52:64,namaAgen=bungkus(s.agenSurat||a.nama||'',8.5,R-347);cukup(LH*2+10+Math.max(8+s.petugas.length*(SISI+3),LH*2+4+SISI+10*(namaAgen.length+1)+4));
   paragraf('Demikian surat pernyataan ini dibuat dengan sebenarnya untuk dipergunakan sebagaimana mestinya.');y+=10;
-  // Tanda tangan QR: petugas di kiri, agen paling kanan
-  const tempat=(wk.tempat||'').toLowerCase().replace(/(^|\s)\S/g,m=>m.toUpperCase());
-  tulis(R,y,`${tempat}, ${tgl2(s.tanggal)}`,{align:'r'});y+=LH+2;
-  const peserta=[...s.petugas.map((id,i)=>{const u=petugasOf(id)||{};return{judul:s.petugas.length>1?`Petugas ${i+1}`:'Petugas',nama:u.nama||'',lain:u.nip?`NIP ${u.nip}`:'',d:ttdData(s,'p',id)};}),{judul:'Agen',nama:s.agenSurat||a.nama||'',lain:JABATAN_AGEN,d:ttdData(s,'a')}];
-  const lk=(R-L)/peserta.length,SISI=68,gambarQr=[];
-  for(let i=0;i<peserta.length;i++){const p=peserta[i],tengah=L+lk*i+lk/2,xq=tengah-SISI/2;
-    tulis(tengah,y,p.judul,{bold:true,size:9,align:'c'});
-    const atas=y+5;
-    const kan=await kanvasQr(kodeQrTtd(p.d));gambarQr.push({bytes:dataBytes(kan.toDataURL('image/jpeg',.95)),w:kan.width,h:kan.height});
-    halaman[halaman.length-1].push(`q ${SISI} 0 0 ${SISI} ${xq.toFixed(2)} ${(PH-atas-SISI).toFixed(2)} cm /Im${gambarQr.length+1} Do Q`);
-    let yn=atas+SISI+10;bungkus(p.nama,8.5,lk-6).concat(bungkus(p.lain,8,lk-6)).forEach(l=>{tulis(tengah,yn,l,{size:8.5,align:'c'});yn+=10;});
-  }
+  // Tanda tangan QR: petugas berjejer ke bawah di kiri, agen di sebelah kanan
+  const tempat=(wk.tempat||'').toLowerCase().replace(/(^|\s)\S/g,m=>m.toUpperCase()),gambarQr=[],XA=347;
+  const pasangQr=async(d,x,atas)=>{const kan=await kanvasQr(kodeQrTtd(d),440,2);gambarQr.push({bytes:dataBytes(kan.toDataURL('image/jpeg',.95)),w:kan.width,h:kan.height});halaman[halaman.length-1].push(`q ${SISI} 0 0 ${SISI} ${x.toFixed(2)} ${(PH-atas-SISI).toFixed(2)} cm /Im${gambarQr.length+1} Do Q`);};
+  tulis(L,y,'Petugas yang bertugas,');tulis(XA,y,`${tempat}, ${tgl2(s.tanggal)}`);
+  let yp=y+6;
+  for(const id of s.petugas){const u=petugasOf(id)||{},ls=bungkus(u.nama||'',8.5,XA-L-SISI-20),tinggi=(ls.length+(u.nip?1:0))*10;
+    await pasangQr(ttdData(s,'p',id),L,yp);
+    let yt=yp+SISI/2-tinggi/2+8;ls.forEach(l=>{tulis(L+SISI+6,yt,l,{size:8.5});yt+=10;});if(u.nip)tulis(L+SISI+6,yt,`NIP ${u.nip}`,{size:8.5});
+    yp+=SISI+3;}
+  let ya=y+LH;tulis(XA,ya,'Yang membuat pernyataan,');ya+=6;
+  await pasangQr(ttdData(s,'a'),XA,ya);ya+=SISI+10;
+  namaAgen.forEach(l=>{tulis(XA,ya,l,{size:8.5});ya+=10;});tulis(XA,ya,JABATAN_AGEN,{size:8.5});
   // Berkas PDF
   const objJpeg=g=>{const biner=[];for(let i=0;i<g.bytes.length;i+=8192)biner.push(String.fromCharCode.apply(null,g.bytes.subarray(i,i+8192)));return `<< /Type /XObject /Subtype /Image /Width ${g.w} /Height ${g.h} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${g.bytes.length} >>\nstream\n${biner.join('')}\nendstream`;};
   const font=b=>`<< /Type /Font /Subtype /Type1 /BaseFont /${b} /Encoding /WinAnsiEncoding >>`;
@@ -1697,10 +1697,10 @@ function matriksQr(data){
   return M;
 }
 /* QR hitam di atas putih dengan logo Kemenkes di tengah */
-async function kanvasQr(bytes,lebar=440){
-  const M=matriksQr(bytes),n=M.length,k=Math.max(2,Math.floor(lebar/(n+8))),c=document.createElement('canvas'),x=c.getContext('2d');
-  c.width=c.height=(n+8)*k;x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);x.fillStyle='#000';
-  M.forEach((b,j)=>b.forEach((w,i)=>{if(w)x.fillRect((i+4)*k,(j+4)*k,k,k);}));
+async function kanvasQr(bytes,lebar=440,tepi=4){
+  const M=matriksQr(bytes),n=M.length,k=Math.max(2,Math.floor(lebar/(n+tepi*2))),c=document.createElement('canvas'),x=c.getContext('2d');
+  c.width=c.height=(n+tepi*2)*k;x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);x.fillStyle='#000';
+  M.forEach((b,j)=>b.forEach((w,i)=>{if(w)x.fillRect((i+tepi)*k,(j+tepi)*k,k,k);}));
   const lg=await muatGambar(LOGO_APP),sisi=Math.round(n*.2)*k,alas=sisi+2*k,tengah=c.width/2;
   x.fillStyle='#fff';x.beginPath();x.roundRect(tengah-alas/2,tengah-alas/2,alas,alas,k*1.5);x.fill();x.drawImage(lg,tengah-sisi/2,tengah-sisi/2,sisi,sisi);
   return c;
