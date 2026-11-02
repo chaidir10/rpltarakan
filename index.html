@@ -1115,7 +1115,7 @@ function confirmBox(title,msg,onYes,yes='Ya, lanjutkan',danger=false){
   openModal({title,body:`<p>${esc(msg)}</p>`,foot:`<button class="btn" data-act="closeModal">Batal</button><button class="btn ${danger?'danger':'pri'}" data-act="_yes">${esc(yes)}</button>`});
 }
 function downloadBlob(blob,name){const u=URL.createObjectURL(blob);const a=document.createElement('a');a.href=u;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),30000);}
-const field=(label,name,val='',o={})=>`<div class="field ${o.cls||''}"><label class="${o.req?'req':''}" for="f_${name}">${esc(label)}</label>${o.type==='textarea'?`<textarea class="inp" id="f_${name}" name="${name}" ${o.ro?'readonly':''} rows="${o.rows||3}" placeholder="${esc(o.ph||'')}">${esc(val)}</textarea>`:`<input class="inp" id="f_${name}" name="${name}" type="${o.type||'text'}" value="${esc(val)}" ${o.req?'required':''} ${o.ro?'readonly':''} ${o.list?`list="${o.list}"`:''} ${o.min!=null?`min="${o.min}"`:''} ${o.step?`step="${o.step}"`:''} ${o.accept?`accept="${o.accept}"`:''} placeholder="${esc(o.ph||'')}" autocomplete="${o.ac||'off'}" ${o.mode?`inputmode="${o.mode}"`:''}>`}${o.hint?`<span class="hint">${o.hint}</span>`:''}</div>`;
+const field=(label,name,val='',o={})=>`<div class="field ${o.cls||''}"><label class="${o.req?'req':''}" for="f_${name}">${esc(label)}</label>${o.type==='textarea'?`<textarea class="inp" id="f_${name}" name="${name}" ${o.ro?'readonly':''} rows="${o.rows||3}" placeholder="${esc(o.ph||'')}">${esc(val)}</textarea>`:`<input class="inp" id="f_${name}" name="${name}" type="${o.type||'text'}" value="${esc(val)}" ${o.req?'required':''} ${o.ro?'readonly':''} ${o.list?`list="${o.list}"`:''} ${o.min!=null?`min="${o.min}"`:''} ${o.step?`step="${o.step}"`:''} ${o.accept?`accept="${o.accept}"`:''} placeholder="${esc(o.ph||'')}" autocomplete="${o.ac||'off'}" ${o.mode?`inputmode="${o.mode}"`:''} ${o.attr||''}>`}${o.hint?`<span class="hint">${o.hint}</span>`:''}</div>`;
 const switchEl=(attrs,on,dis)=>`<span class="switch"><input type="checkbox" ${attrs} ${on?'checked':''} ${dis?'disabled':''}><i></i></span>`;
 function themePref(){return localStorage.getItem('rpl.theme')||'system';}
 function applyTheme(p){
@@ -1802,7 +1802,7 @@ function vSuratForm(s){
   </div></div>
   <div class="card"><div class="hd"><h2>Kapal</h2></div><div class="bd grid2">
     ${field('Nama Kapal','kapal',v.kapal||'',{req:1,ph:'TB. LAJU 215'})}
-    ${field('Tonase (GT)','gt',v.gt||'',{req:1,ph:'155',hint:'Tanpa "GT.", koma desimal boleh, misalnya 36,96.'})}
+    ${field('Tonase (GT)','gt',v.gt||'',{req:1,ph:'155',mode:'decimal',attr:'data-input="gtAngka"',hint:'Hanya angka. Pakai koma untuk desimal, misalnya 36,96.'})}
     ${field('Posisi Kapal','posisi',v.posisi,{req:1,list:'posisi-list',ph:'REDE TARAKAN'})}
     <datalist id="posisi-list">${DB.settings.posisi.map(p=>`<option value="${esc(p)}">`).join('')}</datalist>
     ${field('Tanggal Pemeriksaan','tanggal',v.tanggal,{req:1,type:'date'})}
@@ -1838,7 +1838,9 @@ function renderPicker(){
   box.classList.toggle('penuh',ui.pick.length>=formOrang);
   const pilih=$('#petugas-pilih');pilih.innerHTML=terpilih;pilih.hidden=!terpilih;
   box.style.setProperty('--terpilih',ui.pick.length);
+  const gulir=box.scrollTop;
   box.innerHTML=sisa.map(u=>baris(u)).join('')||`<div class="empty small">Tidak ada petugas yang cocok.</div>`;
+  box.scrollTop=gulir;
 }
 
 /* ================= Detail surat & alur RPL ================= */
@@ -2149,7 +2151,7 @@ const actions={
     const hal=$('form[data-form=surat]').elements.hal;if(!hal.value.trim()||hal.value===halOtomatis)hal.value=halDari(formJenis);halOtomatis=halDari(formJenis);
     scrollTo(0,y);renderPicker();},
   setOrang(el){formOrang=+el.dataset.n;$('#orang-seg').innerHTML=orangButtons();$('#format-hint').textContent=formatHint();ui.pick=ui.pick.slice(0,formOrang);renderPicker();},
-  pick(el){if(ui.pick.length>=formOrang)return toast(`Maksimal ${formOrang} petugas untuk format ini`,'bad');ui.pick.push(el.dataset.id);const q=$('[data-input=petugasQ]');if(q)q.value='';renderPicker();$('#petugas-list').scrollTop=0;},
+  pick(el){if(ui.pick.length>=formOrang)return toast(`Maksimal ${formOrang} petugas untuk format ini`,'bad');ui.pick.push(el.dataset.id);const q=$('[data-input=petugasQ]');if(q)q.value='';renderPicker();},
   unpick(el){ui.pick=ui.pick.filter(x=>x!==el.dataset.id);renderPicker();},
   pickAgen(el){const a=agenOf(el.dataset.id),f=$('form[data-form=surat]');f.elements.agenId.value=a.id;$('#f_agenQ').value=a.nama;f.elements.agenSurat.value=a.nama;$('#agen-list').hidden=true;
     if(!waNumber(a.telp))toast('Nomor agen ini tidak dikenali sebagai WhatsApp','bad');},
@@ -2211,6 +2213,7 @@ const forms={
     if(!formJenis.length)return toast('Jenis pemeriksaan belum dipilih','bad');
     const need=[['agenId','Agen Kapal'],['agenSurat','Nama agen pada surat'],['noSurat','Nomor surat agen'],['tglAgen','Tanggal surat agen'],['hal','Hal surat agen'],['kapal','Nama Kapal'],['gt','Tonase (GT)'],['posisi','Posisi Kapal'],['tanggal','Tanggal Pemeriksaan'],['tglST','Tanggal Surat']];
     for(const[k,l]of need)if(!v(k))return toast(`${l} wajib diisi`,'bad');
+    if(!/^\d+(,\d+)?$/.test(v('gt')))return toast('Tonase (GT) harus berupa angka, misalnya 155 atau 36,96','bad');
     const wilker=ME.wilker||v('wilker');if(!wilker)return toast('Wilayah kerja wajib dipilih','bad');
     if(ui.pick.length!==formOrang)return toast(`Pilih tepat ${formOrang} petugas`,'bad');
     const data={wilker,jarak:v('jarak')==='jauh'?'jauh':'dekat',jenis:[...formJenis],agenId:v('agenId'),agenSurat:v('agenSurat'),noSurat:v('noSurat'),tglAgen:v('tglAgen'),hal:v('hal'),kapal:v('kapal').toUpperCase(),gt:v('gt').replace(/^GT\.?\s*/i,''),posisi:v('posisi').toUpperCase(),tanggal:v('tanggal'),tglST:v('tglST'),penandatangan:v('penandatangan')||'kepala',petugas:[...ui.pick]};
@@ -2335,7 +2338,8 @@ const inputs={
   agenQ(e){ui.agen.q=e.target.value;ui.agen.page=1;deb(renderAgenList);},
   usersQ(e){ui.users.q=e.target.value;deb(renderUserList);},
   petugasCari(e){ui.petugas.q=e.target.value;deb(renderPetugasList);},
-  petugasQ(){deb(renderPicker);},
+  gtAngka(e){const i=e.target;let t=i.value.replace(/[^\d,]/g,'').replace(/^,+/,'');const k=t.indexOf(',');if(k>=0)t=t.slice(0,k+1)+t.slice(k+1).replace(/,/g,'');if(t!==i.value)i.value=t;},
+  petugasQ(){deb(()=>{$('#petugas-list').scrollTop=0;renderPicker();});},
   agenCombo(e){
     const q=e.target.value.toLowerCase().trim(),box=$('#agen-list'),f=$('form[data-form=surat]');f.elements.agenId.value='';
     if(!q){box.hidden=true;return;}
