@@ -427,10 +427,8 @@ a.stat:hover{border-color:var(--line2)}
   .bukti-lay .bukti-view img{max-height:85px}
   .bukti-lay .bukti-view iframe{height:85px}
 }
-.ttd-qr{display:flex;justify-content:center;padding-top:16px}.ttd-qr img{width:220px;height:220px;background:#fff;border-radius:10px}
 .qr-video{width:100%;max-height:360px;border-radius:12px;background:#000;object-fit:cover}
-.ttd-daftar{display:grid;gap:8px;margin-top:10px}
-.ttd-baris{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;padding:8px 10px;border:1px solid var(--line);border-radius:10px}
+.ttd-daftar{margin-top:8px}
 .biaya-baris{border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:grid;gap:10px}
 @media (max-width:860px){
   .inv{grid-template-columns:minmax(0,1fr);gap:10px}
@@ -1046,7 +1044,7 @@ const stSaya=()=>ME&&ME.wilker?DB.st.filter(s=>s.wilker===ME.wilker):DB.st;
 const bolehLihat=s=>!ME.wilker||s.wilker===ME.wilker;
 const pejabatOf=id=>DB.settings.pejabat.find(p=>p.id===id)||DB.settings.pejabat[0];
 /* Jawaban transportasi selalu dicatat bersama siapa yang menjawab dan kapan */
-function setJemput(s,v,oleh,msg,nama){if(v!=='ya')s.ttd=null;s.jemput=v;s.jemputOleh=oleh;s.jemputNama=nama||ME.nama;s.jemputAt=Date.now();addLog(s,msg,nama);}
+function setJemput(s,v,oleh,msg,nama){s.jemput=v;s.jemputOleh=oleh;s.jemputNama=nama||ME.nama;s.jemputAt=Date.now();addLog(s,msg,nama);}
 function jemputInfo(s){
   if(!s.jemput)return null;
   if(s.jemputOleh)return{oleh:s.jemputOleh,nama:s.jemputNama,t:s.jemputAt};
@@ -1590,7 +1588,7 @@ async function pdfPernyataan(s){
   tulis((L+R)/2,y,'SURAT PERNYATAAN',{bold:true,size:12,align:'c'});const lj=lebarTeks('SURAT PERNYATAAN',12,true);garis((L+R-lj)/2,y+2,(L+R+lj)/2,y+2);y+=14;
   tulis((L+R)/2,y,'PENYEDIAAN TRANSPORTASI PETUGAS PEMERIKSAAN KAPAL',{size:FS,align:'c'});y+=18;
   paragraf('Yang bertanda tangan di bawah ini:',0);y+=4;
-  const ttAgen=s.ttd&&s.ttd.agen;kv('Nama',ttAgen?ttAgen.nama:'..............................................');kv('Jabatan',ttAgen?ttAgen.jabatan:'..............................................');kv('Nama Agen',s.agenSurat||a.nama);kv('Alamat',a.alamat);kv('Telepon',a.telp);y+=8;
+  kv('Nama Agen',s.agenSurat||a.nama);kv('Jabatan',JABATAN_AGEN);kv('Alamat',a.alamat);kv('Telepon',a.telp);y+=8;
   paragraf(`Dengan ini menyatakan dengan sebenarnya bahwa petugas ${DB.settings.kop.l4||DB.settings.satker} yang namanya tercantum di bawah ini benar dijemput dan difasilitasi transportasinya oleh perusahaan kami dalam pelaksanaan pemeriksaan kapal, dengan rincian sebagai berikut:`);y+=4;
   kv('Nama Kapal',namaKapal(s));kv('Posisi Kapal',s.posisi);kv('Tanggal Pemeriksaan',hariTgl(s.tanggal));kv('Jenis Pemeriksaan',urutJenis(s.jenis).map(k=>JENIS[k].label).join(', '));kv('Surat Tugas',s.nomor?`${s.nomor}, ${tgl2(s.tglST)}`:'Dalam proses');kv('Surat Agen',`${s.noSurat}, ${tgl2(s.tglAgen)}`);kv('Wilayah Kerja',wkNama(s.wilker));y+=10;
   // Daftar petugas
@@ -1606,14 +1604,13 @@ async function pdfPernyataan(s){
   // Tanda tangan QR: petugas di kiri, agen paling kanan
   const tempat=(wk.tempat||'').toLowerCase().replace(/(^|\s)\S/g,m=>m.toUpperCase());
   tulis(R,y,`${tempat}, ${tgl2(s.tanggal)}`,{align:'r'});y+=LH+2;
-  const peserta=[...s.petugas.map((id,i)=>{const u=petugasOf(id)||{};return{judul:s.petugas.length>1?`Petugas ${i+1}`:'Petugas',nama:u.nama||'',lain:u.nip?`NIP ${u.nip}`:'',d:ttdData(s,'p',id)};}),{judul:'Agen',nama:ttAgen?ttAgen.nama:(s.agenSurat||a.nama||''),lain:ttAgen?ttAgen.jabatan:'',d:ttdData(s,'a')}];
+  const peserta=[...s.petugas.map((id,i)=>{const u=petugasOf(id)||{};return{judul:s.petugas.length>1?`Petugas ${i+1}`:'Petugas',nama:u.nama||'',lain:u.nip?`NIP ${u.nip}`:'',d:ttdData(s,'p',id)};}),{judul:'Agen',nama:s.agenSurat||a.nama||'',lain:JABATAN_AGEN,d:ttdData(s,'a')}];
   const lk=(R-L)/peserta.length,SISI=68,gambarQr=[];
   for(let i=0;i<peserta.length;i++){const p=peserta[i],tengah=L+lk*i+lk/2,xq=tengah-SISI/2;
     tulis(tengah,y,p.judul,{bold:true,size:9,align:'c'});
     const atas=y+5;
-    if(p.d){const kan=await kanvasQr(kodeQrTtd(p.d));gambarQr.push({bytes:dataBytes(kan.toDataURL('image/jpeg',.95)),w:kan.width,h:kan.height});
-      halaman[halaman.length-1].push(`q ${SISI} 0 0 ${SISI} ${xq.toFixed(2)} ${(PH-atas-SISI).toFixed(2)} cm /Im${gambarQr.length+1} Do Q`);
-    }else{halaman[halaman.length-1].push(`.5 w ${xq.toFixed(2)} ${(PH-atas-SISI).toFixed(2)} ${SISI} ${SISI} re S`);tulis(tengah,atas+SISI/2-2,'Belum',{size:7.5,align:'c'});tulis(tengah,atas+SISI/2+7,'ditandatangani',{size:7.5,align:'c'});}
+    const kan=await kanvasQr(kodeQrTtd(p.d));gambarQr.push({bytes:dataBytes(kan.toDataURL('image/jpeg',.95)),w:kan.width,h:kan.height});
+    halaman[halaman.length-1].push(`q ${SISI} 0 0 ${SISI} ${xq.toFixed(2)} ${(PH-atas-SISI).toFixed(2)} cm /Im${gambarQr.length+1} Do Q`);
     let yn=atas+SISI+10;bungkus(p.nama,8.5,lk-6).concat(bungkus(p.lain,8,lk-6)).forEach(l=>{tulis(tengah,yn,l,{size:8.5,align:'c'});yn+=10;});
   }
   // Berkas PDF
@@ -1708,22 +1705,11 @@ async function kanvasQr(bytes,lebar=440){
   x.fillStyle='#fff';x.beginPath();x.roundRect(tengah-alas/2,tengah-alas/2,alas,alas,k*1.5);x.fill();x.drawImage(lg,tengah-sisi/2,tengah-sisi/2,sisi,sisi);
   return c;
 }
-const ttdData=(s,peran,id)=>{const t=s.ttd||{};
-  if(peran==='a'){const a=t.agen;return a&&{peran:'a',tgl:s.tanggal,nama:a.nama,kapal:s.kapal,tambahan:a.jabatan,at:a.at};}
-  const p=t.p&&t.p[id],u=petugasOf(id)||{};return p&&{peran:'p',tgl:s.tanggal,nama:u.nama,kapal:s.kapal,tambahan:u.nip,at:p.at};};
-const qrTtdUrl=async d=>(await kanvasQr(kodeQrTtd(d),320)).toDataURL('image/png');
-const stDariTtd=tk=>{for(const s of DB.st)for(const[id,t]of Object.entries(s.ttdToken||{}))if(t===tk)return{s,id};return null;};
-const tokenPetugas=(s,id)=>{s.ttdToken=s.ttdToken||{};if(!s.ttdToken[id]){s.ttdToken[id]=tokenBaru();save();}return s.ttdToken[id];};
-const tandaTerima=at=>waktu(at*1000);
-/* Petugas menandatangani lewat tautan sendiri, tanpa login */
-function renderTtdPetugas(tk){
-  const f=stDariTtd(tk),S=DB.settings,s=f&&f.s,u=f&&petugasOf(f.id),sudah=s&&s.ttd&&s.ttd.p&&s.ttd.p[f.id],valid=s&&s.jemput==='ya'&&s.petugas.includes(f.id);
-  document.title='Tanda tangan surat pernyataan - '+S.appName;
-  $('#app').innerHTML=`<header class="top"><div class="top-in" style="max-width:640px"><img src="${appLogo()}" alt="" style="height:36px;max-width:96px;object-fit:contain;background:#fff;border-radius:8px;padding:2px 4px"><div class="grow"><b style="display:block;line-height:1.25;font-weight:650">${esc(S.satker)}</b><span class="small muted">Tanda tangan surat pernyataan</span></div></div></header>
-  <main class="content" style="max-width:704px">${!valid?`<div class="card empty">Tautan tidak berlaku. Hubungi ${esc(S.satker)}.</div>`:`<div class="stack"><div class="card"><div class="hd"><h2>Surat Pernyataan</h2></div><div class="bd"><dl class="kv"><dt>Petugas</dt><dd class="strong">${esc(u?u.nama:'')}</dd><dt>NIP</dt><dd>${esc(u&&u.nip||'-')}</dd><dt>Kapal</dt><dd>${esc(namaKapal(s))}</dd><dt>Posisi</dt><dd>${esc(s.posisi)}</dd><dt>Tgl pemeriksaan</dt><dd>${tglID(s.tanggal)}</dd><dt>Agen</dt><dd>${esc(s.agenSurat||'')}</dd></dl></div></div>
-  ${sudah?`<div class="alert ok">${ic('check')}<span>Sudah ditandatangani ${tandaTerima(sudah.at)}.</span></div><div class="card"><div class="bd ttd-qr"><img id="qr-saya" alt="Tanda tangan QR"></div></div>${tombolPernyataan(s)}`:`<div class="card"><div class="bd stack"><p>Dengan menandatangani, saya menyatakan benar dijemput dan difasilitasi transportasinya oleh agen pada pemeriksaan kapal ini.</p><button class="btn pri block" data-act="ttdPetugas" data-tk="${esc(tk)}">${ic('qr')} Tanda tangani</button></div></div>`}</div>`}</main>`;
-  if(sudah)qrTtdUrl(ttdData(s,'p',f.id)).then(u=>{const i=$('#qr-saya');if(i)i.src=u;});
-}
+const JABATAN_AGEN='Penanggung Jawab';
+/* Tanda tangan terisi otomatis saat agen menyediakan transportasi, memakai waktu jawaban agen */
+const ttdData=(s,peran,id)=>{const at=Math.floor((s.jemputAt||s.dibuat||Date.now())/1000);
+  if(peran==='a')return{peran:'a',tgl:s.tanggal,nama:s.agenSurat||(agenOf(s.agenId)||{}).nama,kapal:s.kapal,tambahan:JABATAN_AGEN,at};
+  const u=petugasOf(id)||{};return{peran:'p',tgl:s.tanggal,nama:u.nama,kapal:s.kapal,tambahan:u.nip,at};};
 /* Pemeriksaan QR: hanya aplikasi ini yang bisa membaca isinya */
 let kamera=null;
 const jsqr=()=>{if(!window.jsQR)(0,eval)($('#lib-jsqr').textContent);return window.jsQR;};
@@ -1739,10 +1725,7 @@ function renderVerifPublik(){
   $('#app').innerHTML=`<header class="top"><div class="top-in" style="max-width:640px"><img src="${appLogo()}" alt="" style="height:36px;max-width:96px;object-fit:contain;background:#fff;border-radius:8px;padding:2px 4px"><div class="grow"><b style="display:block;line-height:1.25;font-weight:650">${esc(S.satker)}</b><span class="small muted">Verifikasi tanda tangan QR</span></div></div></header><main class="content" style="max-width:704px">${vVerif()}</main>`;
 }
 const bolehPernyataan=s=>s&&s.jemput==='ya'&&(!ME||bolehLihat(s));
-const daftarTtd=s=>{const t=s.ttd||{},p=t.p||{},jml=s.petugas.filter(id=>p[id]).length+(t.agen?1:0),sudah=x=>`<span class="tag ok">${ic('check')} ${tandaTerima(x.at)}</span>`;
-  return `<div class="ttd-daftar"><div class="row between"><span class="lbl">Tanda tangan QR ${jml} dari ${s.petugas.length+1}</span><a class="btn sm ghost" href="#/verifikasi">${ic('qr')} Verifikasi</a></div>
-  <div class="ttd-baris"><span><span class="strong">${esc(t.agen?t.agen.nama:s.agenSurat||'')}</span><div class="small muted">Agen${t.agen?', '+esc(t.agen.jabatan):''}</div></span>${t.agen?sudah(t.agen):'<span class="tag warn">Belum, lewat tautan agen</span>'}</div>
-  ${s.petugas.map(id=>{const u=petugasOf(id)||{};return `<div class="ttd-baris"><span><span class="strong">${esc(u.nama||'')}</span><div class="small muted">Petugas</div></span>${p[id]?sudah(p[id]):`<span class="wrap-row">${waNumber(u.wa)?`<button class="btn sm wa" data-act="ttdWa" data-id="${s.id}" data-p="${id}">${ic('send')} WA</button>`:''}<button class="btn sm" data-act="ttdSalin" data-id="${s.id}" data-p="${id}">${ic('salin')} Salin tautan</button></span>`}</div>`;}).join('')}</div>`;};
+const daftarTtd=s=>`<div class="ttd-daftar"><div class="row between"><span class="small muted">Tanda tangan QR agen dan ${s.petugas.length} petugas terisi otomatis.</span><a class="btn sm ghost" href="#/verifikasi">${ic('qr')} Verifikasi</a></div></div>`;
 const tombolPernyataan=(s,pratinjau)=>`<div class="acts">${pratinjau?`<button class="btn sm" data-act="previewPernyataan" data-id="${s.id}">${ic("eye")} Pratinjau surat pernyataan</button>`:""}<button class="btn sm pri" data-act="dlPernyataan" data-id="${s.id}">${ic("down")} Unduh surat pernyataan</button></div>`;
 function unduhNominatif(s){
   const n=new Date(),st=`${n.getFullYear()}${pad2(n.getMonth()+1)}${pad2(n.getDate())}${pad2(n.getHours())}${pad2(n.getMinutes())}${pad2(n.getSeconds())}`;
@@ -1818,8 +1801,6 @@ function route(){
   const h=(location.hash||'').replace(/^#\/?/,'');
   hentikanKamera();
   const tautan=h.match(/^t\/(.*)$/);
-  const ttdTk=h.match(/^ttd\/(.*)$/);
-  if(ttdTk){closeModal();renderTtdPetugas(ttdTk[1]);return;}
   if(h==='verifikasi'&&!ME){closeModal();renderVerifPublik();return;}
   if(tautan){closeModal();renderTautan(tautan[1]);return;}
   if(!ME){renderLogin();return;}
@@ -2109,7 +2090,6 @@ function renderTautan(tk){
   document.title=(s?s.kapal+' - ':'')+S.appName;
   const themeIc=document.documentElement.dataset.theme==='dark'?'sun':'moon';
   const inv=s&&s.tagihan;
-  if(s&&s.jemput==='ya'&&s.ttd&&s.ttd.agen)qrTtdUrl(ttdData(s,'a')).then(u=>{const i=$('#qr-saya');if(i)i.src=u;});
   $('#app').innerHTML=`<header class="top"><div class="top-in" style="max-width:${inv?1040:760}px"><img src="${appLogo()}" alt="" style="height:36px;max-width:96px;object-fit:contain;background:#fff;border-radius:8px;padding:2px 4px"><div class="grow"><b style="display:block;line-height:1.25;font-weight:650">${esc(S.satker)}</b><span class="small muted">Biaya transportasi pemeriksaan kapal</span></div><button class="btn ghost icon" data-act="toggleTheme" aria-label="Ganti tema">${ic(themeIc)}</button></div></header>
   <main class="content" style="max-width:${inv?1104:824}px">${s?`${inv?'':`<h1 style="font-size:20px;font-weight:650;letter-spacing:-.01em;margin:6px 0 8px">${esc(namaKapal(s))}</h1>`}${vAgenKapal(s)}`:`<div class="card empty">Tautan tidak berlaku. Hubungi petugas ${esc(S.satker)}.</div>`}</main>`;
   muatThumb();
@@ -2153,7 +2133,7 @@ function vAgenKapal(s){
   if(k==='konfirmasi')aksi=`<div class="card"><div class="hd"><h2>Formulir biaya layanan</h2></div><div class="bd stack"><p>Apakah agen menyediakan transportasi untuk <b class="strong">${s.petugas.length} petugas</b> pemeriksa kapal ini?</p>
     <div class="grid2 pilih-trans"><button class="opt ya" data-act="agenJemput" data-id="${s.id}" data-v="ya"><span class="pt-ic">${ic('mobil')}</span><b>Disediakan agen</b><small>Agen menjemput dan mengantar petugas.</small><span class="tag ok">Tanpa tagihan (Rp 0)</span></button>
     <button class="opt tidak" data-act="agenJemput" data-id="${s.id}" data-v="tidak"><span class="pt-ic">${ic('struk')}</span><b>Tidak disediakan</b><small>Biaya transportasi petugas ditagihkan lewat invoice.</small><span class="tag warn">Ada tagihan</span></button></div></div></div>`;
-  else if(k==='jemput')aksi=`<div class="alert ok">${ic('check')}<span>Transportasi petugas disediakan agen. Tidak ada tagihan.</span></div><div class="card"><div class="hd"><h2>Surat Pernyataan</h2></div><div class="bd stack" style="gap:10px"><p class="small muted">Unduh surat pernyataan bahwa petugas dijemput dan difasilitasi transportasinya oleh agen, beserta tanda tangan QR agen dan petugas.</p>${s.ttd&&s.ttd.agen?`<div class="alert ok">${ic('check')}<span>Ditandatangani ${esc(s.ttd.agen.nama)}, ${tandaTerima(s.ttd.agen.at)}.</span></div><div class="ttd-qr"><img id="qr-saya" alt="Tanda tangan QR"></div>`:`<form class="stack" data-form="ttdAgen" novalidate style="gap:10px"><div class="grid2">${field('Nama penanda tangan','ttdNama','',{req:1})}${field('Jabatan','ttdJabatan','',{req:1})}</div><button class="btn pri">${ic('qr')} Tanda tangani</button></form>`}${tombolPernyataan(s)}</div></div>`;
+  else if(k==='jemput')aksi=`<div class="alert ok">${ic('check')}<span>Transportasi petugas disediakan agen. Tidak ada tagihan.</span></div><div class="card"><div class="hd"><h2>Surat Pernyataan</h2></div><div class="bd stack" style="gap:10px"><p class="small muted">Unduh surat pernyataan bahwa petugas dijemput dan difasilitasi transportasinya oleh agen, beserta tanda tangan QR agen dan petugas yang sudah terisi otomatis.</p>${tombolPernyataan(s)}</div></div>`;
   else if(k==='perlu')aksi=`<div class="alert info">${ic('file')}<span>Tagihan sedang disiapkan petugas. Anda akan menerima notifikasi WhatsApp setelah terbit.</span></div>`;
   if(!t)return `<div class="wrap-row" style="margin-bottom:12px">${stageTag(s)}</div><div class="stack">${aksi}
   <div class="card"><div class="hd"><h2>Informasi Kapal</h2></div><div class="bd"><dl class="kv"><dt>Kapal</dt><dd>${esc(namaKapal(s))}</dd><dt>Posisi</dt><dd>${esc(s.posisi)}</dd><dt>Tgl pemeriksaan</dt><dd>${tglID(s.tanggal)}</dd><dt>Jumlah petugas</dt><dd>${s.petugas.length} orang</dd><dt>Surat tugas</dt><dd>${esc(s.nomor||'Dalam proses')}</dd></dl></div></div></div>`;
@@ -2259,10 +2239,10 @@ function renderPetugasList(){
     <td data-l="Status"><span>${p.aktif?'<span class="tag ok">Aktif</span>':'<span class="tag">Nonaktif</span>'}</span></td></tr>`).join('')}</tbody></table></div><div class="pager"><span>${rows.length} petugas</span></div>`:`<div class="empty">Tidak ada petugas yang cocok.</div>`;
 }
 function petugasModal(p){
-  const v=p||{nama:'',nip:'',pangkat:'',jabatan:'',wa:'',wilker:'',aktif:true},dipakai=p&&DB.st.some(s=>s.petugas.includes(p.id));
+  const v=p||{nama:'',nip:'',pangkat:'',jabatan:'',wilker:'',aktif:true},dipakai=p&&DB.st.some(s=>s.petugas.includes(p.id));
   openModal({title:p?'Ubah Petugas':'Tambah Petugas',form:'petugas',body:`<input type="hidden" name="id" value="${p?p.id:''}"><div class="grid2">
     ${field('Nama lengkap & gelar','nama',v.nama,{req:1,cls:'span2'})}${field('NIP','nip',v.nip,{mode:'numeric',hint:'18 digit, boleh kosong.'})}${field('Pangkat/Golongan','pangkat',v.pangkat,{ph:'Penata Tk. I - III/d'})}
-    ${field('Jabatan','jabatan',v.jabatan,{req:1})}${field('Nomor WhatsApp','wa',v.wa||'',{mode:'tel',ph:'08xxxxxxxxxx',hint:'Untuk mengirim tautan tanda tangan QR.'})}
+    ${field('Jabatan','jabatan',v.jabatan,{req:1,cls:'span2'})}
     <div class="field span2"><label for="f_pwk">Wilayah kerja</label><select class="inp" id="f_pwk" name="wilker"><option value="">Semua wilayah</option>${WILKER.map(w=>`<option value="${w.id}" ${v.wilker===w.id?'selected':''}>${esc(w.nama)}</option>`).join('')}</select><span class="hint">Petugas wilayah ini tampil paling atas saat memilih petugas.</span></div></div>
     <label class="row mt"><span class="switch"><input type="checkbox" name="aktif" ${v.aktif?'checked':''}><i></i></span> Bisa ditugaskan</label>`,
     foot:`${p&&!dipakai?`<button type="button" class="btn danger" data-act="hapusPetugas" data-id="${p.id}" style="margin-right:auto">Hapus</button>`:''}<button type="button" class="btn" data-act="closeModal">Batal</button><button class="btn pri">Simpan</button>`});
@@ -2336,10 +2316,6 @@ const actions={
   previewNominatif(el){const s=findST(el.dataset.id);if(!s||!s.tagihan||!bolehLihat(s))return;
     actions._previewDl=()=>unduhNominatif(s);
     openModal({title:`Daftar Nominatif - ${s.kapal}`,wide:true,body:`<div class="bukti-view"><iframe src="${urlBerkas(pdfNominatif(s))}" title="Daftar nominatif"></iframe></div>`,foot:`<button class="btn" data-act="closeModal">Tutup</button><button class="btn pri" data-act="_previewDl">${ic('down')} Unduh PDF</button>`});},
-  ttdPetugas(el){const f=stDariTtd(el.dataset.tk);if(!f||f.s.jemput!=='ya')return;
-    confirmBox('Tanda tangani surat pernyataan','Tanda tangan QR Anda akan tercetak pada surat pernyataan.',()=>{const s=f.s;s.ttd=s.ttd||{};s.ttd.p=s.ttd.p||{};if(!s.ttd.p[f.id]){s.ttd.p[f.id]={at:Math.floor(Date.now()/1000)};addLog(s,`Surat pernyataan ditandatangani petugas ${(petugasOf(f.id)||{}).nama||''}`,(petugasOf(f.id)||{}).nama);save();}route();},'Tanda tangani');},
-  ttdSalin(el){const s=findST(el.dataset.id);salinKe(appLink('ttd/'+tokenPetugas(s,el.dataset.p)),'Tautan tanda tangan disalin');},
-  ttdWa(el){const s=findST(el.dataset.id),u=petugasOf(el.dataset.p),wa=u&&waNumber(u.wa);if(!wa)return;window.open(`https://wa.me/${wa}?text=${encodeURIComponent(`Mohon tanda tangani surat pernyataan pemeriksaan Kapal ${namaKapal(s)} tanggal ${tglPendek(s.tanggal)} melalui tautan berikut: ${appLink('ttd/'+tokenPetugas(s,u.id))}`)}`,'_blank','noopener');},
   async qrKamera(){if(kamera)return hentikanKamera();
     try{const stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}}),v=$('#qr-video');kamera={stream,aktif:true};v.hidden=false;v.srcObject=stream;await v.play();
       const kan=document.createElement('canvas'),x=kan.getContext('2d',{willReadFrequently:true}),baca=jsqr();
@@ -2434,7 +2410,7 @@ const forms={
     if(ui.pick.length!==formOrang)return toast(`Pilih tepat ${formOrang} petugas`,'bad');
     const data={wilker,jarak:v('jarak')==='jauh'?'jauh':'dekat',jenis:[...formJenis],agenId:v('agenId'),agenSurat:v('agenSurat'),noSurat:v('noSurat'),tglAgen:v('tglAgen'),hal:v('hal'),kapal:v('kapal').toUpperCase(),gt:v('gt').replace(/^GT\.?\s*/i,''),posisi:v('posisi').toUpperCase(),tanggal:v('tanggal'),tglST:v('tglST'),penandatangan:v('penandatangan')||'kepala',petugas:[...ui.pick]};
     const id=f.dataset.id;let s,jarakUbah=false;
-    if(id){s=findST(id);jarakUbah=jarakST(s)!==data.jarak;const ubahTtd=s.ttd&&['kapal','gt','posisi','tanggal'].some(k=>s[k]!==data[k]);const keluar=s.ttd&&s.ttd.p?Object.keys(s.ttd.p).filter(p=>!data.petugas.includes(p)):[];Object.assign(s,data);if(ubahTtd){s.ttd=null;addLog(s,'Tanda tangan surat pernyataan dibatalkan karena rincian kapal berubah');}else keluar.forEach(p=>delete s.ttd.p[p]);addLog(s,'Surat tugas diubah');}
+    if(id){s=findST(id);jarakUbah=jarakST(s)!==data.jarak;Object.assign(s,data);addLog(s,'Surat tugas diubah');}
     else{s={id:uid(),token:tokenBaru(),dibuat:Date.now(),dibuatOleh:ME.id,nomor:'',fileST:null,jemput:null,tagihan:null,bayar:null,notif:{},log:[],...data};addLog(s,'Surat tugas dibuat');DB.st.push(s);}
     if(s.tagihan&&!s.bayar){const old=s.tagihan.rincian;s.tagihan.rincian=s.petugas.map(p=>{const u=petugasOf(p)||{};const ada=old.find(r=>r.id===p);return ada?(jarakUbah?{...ada,...biayaJarak(s.jarak)}:ada):{id:p,nama:u.nama,nip:u.nip||'',pangkat:u.pangkat||'',penginapan:0,...biayaJarak(s.jarak)};});}
     save();location.hash='#/surat/'+s.id;toast(!jarakUbah||!s.tagihan?'Tersimpan. Unduh surat, lalu kirim notifikasi ke agen.':s.bayar?'Tersimpan. Agen sudah mengirim bukti bayar, jadi nominal tagihan tidak diubah.':'Tersimpan. Jarak berubah, nominal tagihan ikut disesuaikan. Periksa kembali tagihannya.');
@@ -2456,8 +2432,6 @@ const forms={
     addLog(s,`Tagihan ${old.nomor?'diubah':'diterbitkan'}: Rp ${rp(totalTagihan(s.tagihan))}`);
     refresh();toast('Tagihan terbit. Kirim WA tagihan kepada agen.');
   },
-  ttdAgen(fd){const s=stDariTautan();if(!s||s.jemput!=='ya'||(s.ttd&&s.ttd.agen))return;const nama=String(fd.get('ttdNama')||'').trim(),jabatan=String(fd.get('ttdJabatan')||'').trim();if(!nama||!jabatan)return toast('Nama dan jabatan wajib diisi','bad');
-    s.ttd=s.ttd||{};s.ttd.agen={nama,jabatan,at:Math.floor(Date.now()/1000)};addLog(s,`Surat pernyataan ditandatangani agen ${nama}`,nama);save();route();toast('Surat pernyataan ditandatangani');},
   async bukti(fd,f){
     const s=stDariTautan();if(!s)return;
     const nama=String(fd.get('nama')).trim(),tgl=fd.get('tgl'),file=fd.get('file'),bank=String(fd.get('bank')||'').trim(),norek=String(fd.get('norek')||'').trim();
@@ -2508,8 +2482,7 @@ const forms={
     if(!nama||!jabatan)return toast('Nama dan jabatan wajib diisi','bad');
     if(nip&&!/^\d{18}$/.test(nip))return toast('NIP harus 18 digit angka','bad');
     if(nip&&DB.petugas.some(p=>p.nip===nip&&p.id!==id))return toast('NIP sudah terdaftar','bad');
-    if(g('wa')&&!waNumber(g('wa')))return toast('Nomor WhatsApp tidak valid','bad');
-    const d={nama,nip,pangkat:g('pangkat'),jabatan,wa:g('wa'),wilker:g('wilker'),aktif:!!fd.get('aktif')};
+    const d={nama,nip,pangkat:g('pangkat'),jabatan,wilker:g('wilker'),aktif:!!fd.get('aktif')};
     if(id)Object.assign(petugasOf(id),d);else DB.petugas.push({id:'p'+uid(),...d});
     closeModal();save();route();toast('Data petugas disimpan');
   },
