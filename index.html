@@ -1550,6 +1550,75 @@ function pdfNominatif(s){
   const a=new Uint8Array(pdf.length);for(let i=0;i<pdf.length;i++)a[i]=pdf.charCodeAt(i)&255;
   return new Blob([a],{type:'application/pdf'});
 }
+/* ================= Surat pernyataan transportasi (PDF) ================= */
+const muatGambar=url=>new Promise((res,rej)=>{const im=new Image();im.onload=()=>res(im);im.onerror=rej;im.src=url;});
+/* Kop sama dengan surat tugas, digambar ke kanvas karena PDF ini hanya memakai font bawaan */
+async function kopJpeg(){
+  const K=DB.settings.kop,S=3,W=534,c=document.createElement('canvas'),x=c.getContext('2d');
+  let H=106;
+  if(K.mode==='gambar'&&K.gambar){
+    const im=await muatGambar(K.gambar.url);H=W*im.naturalHeight/im.naturalWidth;
+    c.width=W*S;c.height=H*S;x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);x.drawImage(im,0,0,c.width,c.height);
+  }else{
+    const [lg,pin,tel,web]=await Promise.all([K.logo?K.logo.url:LOGO_URL,icUrl('pin'),icUrl('tel'),icUrl('web')].map(muatGambar));
+    c.width=W*S;c.height=H*S;x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);x.scale(S,S);
+    x.drawImage(lg,0,0,156,K.logo?156*K.logo.h/K.logo.w:60);
+    const FN='"Segoe UI",Arial,sans-serif',kiri=260.7;let y=0;
+    const baris=(t,sz,lh,warna,tebal,ikon)=>{x.font=`${tebal?"bold ":""}${sz}px ${FN}`;x.fillStyle=warna;if(ikon)x.drawImage(ikon,kiri,y+(lh-8)/2,8,8);x.fillText(t||'',kiri+(sz<10?11:0),y+lh*.8);y+=lh;};
+    baris(K.l1,15,17,'#12B0A0',1);baris(K.l2,11.5,12.5,'#6B7472',1);baris(K.l3,11.5,12.5,'#6B7472',1);baris(K.l4,11.5,15,'#6B7472');
+    baris(K.a1,8.5,12,'#6B7472',0,pin);baris(K.a2,8.5,12,'#6B7472');baris(K.telp,8.5,12,'#6B7472',0,tel);baris(K.web,8.5,12,'#6B7472',0,web);
+  }
+  return{bytes:dataBytes(c.toDataURL('image/jpeg',.92)),w:c.width,h:c.height,H};
+}
+async function pdfPernyataan(s){
+  const kop=await kopJpeg(),a=agenOf(s.agenId)||{},wk=WILKER.find(w=>w.id===s.wilker)||{};
+  const PH=842,L=85,R=524,FS=11,LH=14,halaman=[[]];
+  const pe=t=>String(t).replace(/[^\x20-\x7e]/g,'?').replace(/([\\()])/g,'\\$1');
+  const tulis=(x,y,t,o={})=>{const sz=o.size||FS,w=lebarTeks(t,sz,o.bold),xx=o.align==='c'?x-w/2:o.align==='r'?x-w:x;halaman[halaman.length-1].push(`BT /${o.bold?"F2":"F1"} ${sz} Tf ${(o.tw||0).toFixed(3)} Tw ${xx.toFixed(2)} ${(PH-y).toFixed(2)} Td (${pe(t)}) Tj ET`);};
+  const garis=(x1,y1,x2,y2)=>halaman[halaman.length-1].push(`.6 w ${x1.toFixed(2)} ${(PH-y1).toFixed(2)} m ${x2.toFixed(2)} ${(PH-y2).toFixed(2)} l S`);
+  let y=28+kop.H+24;
+  const cukup=h=>{if(y+h>PH-40){halaman.push([]);y=60;}};
+  const paragraf=(t,indent=36)=>{const lebar=R-L,ls=[];let b='';String(t).split(/\s+/).filter(Boolean).forEach(k=>{const w=lebar-(ls.length?0:indent),u=b?b+' '+k:k;if(lebarTeks(u,FS)<=w||!b)b=u;else{ls.push(b);b=k;}});if(b)ls.push(b);
+    ls.forEach((l,i)=>{cukup(LH);const x=L+(i?0:indent),sp=l.split(' ').length-1,tw=i<ls.length-1&&sp?(R-x-lebarTeks(l,FS))/sp:0;tulis(x,y,l,{tw});y+=LH;});};
+  const kv=(k,v)=>{const ls=bungkus(v||'-',FS,R-L-140);cukup(LH*ls.length);tulis(L+18,y,k);tulis(L+130,y,':');ls.forEach(l=>{tulis(L+140,y,l);y+=LH;});};
+  tulis((L+R)/2,y,'SURAT PERNYATAAN',{bold:true,size:12,align:'c'});const lj=lebarTeks('SURAT PERNYATAAN',12,true);garis((L+R-lj)/2,y+2,(L+R+lj)/2,y+2);y+=14;
+  tulis((L+R)/2,y,'PENYEDIAAN TRANSPORTASI PETUGAS PEMERIKSAAN KAPAL',{size:FS,align:'c'});y+=22;
+  paragraf('Yang bertanda tangan di bawah ini:',0);y+=4;
+  kv('Nama','..............................................');kv('Jabatan','..............................................');kv('Nama Agen',s.agenSurat||a.nama);kv('Alamat',a.alamat);kv('Telepon',a.telp);y+=8;
+  paragraf(`Dengan ini menyatakan dengan sebenarnya bahwa petugas ${DB.settings.kop.l4||DB.settings.satker} yang namanya tercantum di bawah ini benar dijemput dan difasilitasi transportasinya oleh perusahaan kami dalam pelaksanaan pemeriksaan kapal, dengan rincian sebagai berikut:`);y+=4;
+  kv('Nama Kapal',namaKapal(s));kv('Posisi Kapal',s.posisi);kv('Tanggal Pemeriksaan',hariTgl(s.tanggal));kv('Jenis Pemeriksaan',urutJenis(s.jenis).map(k=>JENIS[k].label).join(', '));kv('Surat Tugas',s.nomor?`${s.nomor}, ${tgl2(s.tglST)}`:'Dalam proses');kv('Surat Agen',`${s.noSurat}, ${tgl2(s.tglAgen)}`);kv('Wilayah Kerja',wkNama(s.wilker));y+=10;
+  // Daftar petugas
+  const K=[L,L+22,L+138,L+242,L+322,R],TS=9.5,TL=12;
+  const barisTabel=(sel,o={})=>{const isi=sel.map((t,i)=>bungkus(t||'-',TS,K[i+1]-K[i]-8)),h=Math.max(...isi.map(l=>l.length))*TL+8;cukup(h);garis(L,y,R,y);
+    isi.forEach((ls,i)=>ls.forEach((l,j)=>tulis(i===1||i===4?K[i]+4:(K[i]+K[i+1])/2,y+TL+1+j*TL,l,{size:TS,bold:o.bold,align:i===1||i===4?'':'c'})));
+    K.forEach(x=>garis(x,y,x,y+h));y+=h;garis(L,y,R,y);};
+  barisTabel(['No','Nama Petugas','NIP','Pangkat/Gol.','Jabatan'],{bold:true});
+  s.petugas.forEach((id,i)=>{const u=petugasOf(id)||{};barisTabel([String(i+1),u.nama,u.nip,u.pangkat,u.jabatan]);});y+=18;
+  paragraf('Atas penyediaan transportasi tersebut, biaya transportasi petugas tidak ditagihkan melalui Rekening Pemerintah Lainnya (RPL).');y+=4;
+  const agen=bungkus(s.agenSurat||a.nama||'',FS,R-325);cukup(LH*2+14+LH*(2+agen.length)+56);
+  paragraf('Demikian surat pernyataan ini dibuat dengan sebenarnya untuk dipergunakan sebagaimana mestinya.');y+=14;
+  // Tanda tangan agen
+  const tempat=(wk.tempat||'').toLowerCase().replace(/(^|\s)\S/g,m=>m.toUpperCase());
+  tulis(325,y,`${tempat}, ${tgl2(s.tanggal)}`);y+=LH;tulis(325,y,'Yang membuat pernyataan,');y+=LH;agen.forEach(l=>{tulis(325,y,l);y+=LH;});y+=50;
+  tulis(325,y,'(........................................)');
+  // Berkas PDF
+  const biner=[];for(let i=0;i<kop.bytes.length;i+=8192)biner.push(String.fromCharCode.apply(null,kop.bytes.subarray(i,i+8192)));
+  const font=b=>`<< /Type /Font /Subtype /Type1 /BaseFont /${b} /Encoding /WinAnsiEncoding >>`;
+  const obj=['<< /Type /Catalog /Pages 2 0 R >>','',font('Helvetica'),font('Helvetica-Bold'),`<< /Type /XObject /Subtype /Image /Width ${kop.w} /Height ${kop.h} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${kop.bytes.length} >>\nstream\n${biner.join("")}\nendstream`];
+  const anak=[];
+  halaman.forEach((h,i)=>{const isi=(i?'':`q 534 0 0 ${kop.H.toFixed(2)} 30.5 ${(PH-28-kop.H).toFixed(2)} cm /Im1 Do Q\n`)+h.join('\n');
+    obj.push(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Contents ${obj.length+2} 0 R /Resources << /Font << /F1 3 0 R /F2 4 0 R >> /XObject << /Im1 5 0 R >> >> >>`);anak.push(`${obj.length} 0 R`);
+    obj.push(`<< /Length ${isi.length} >>\nstream\n${isi}\nendstream`);});
+  obj[1]=`<< /Type /Pages /Kids [${anak.join(" ")}] /Count ${anak.length} >>`;
+  let pdf='%PDF-1.4\n';const off=[];
+  obj.forEach((o,i)=>{off.push(pdf.length);pdf+=`${i+1} 0 obj\n${o}\nendobj\n`;});
+  const xr=pdf.length;
+  pdf+=`xref\n0 ${obj.length+1}\n0000000000 65535 f \n`+off.map(o=>String(o).padStart(10,'0')+' 00000 n \n').join('')+`trailer\n<< /Size ${obj.length+1} /Root 1 0 R >>\nstartxref\n${xr}\n%%EOF\n`;
+  const u8=new Uint8Array(pdf.length);for(let i=0;i<pdf.length;i++)u8[i]=pdf.charCodeAt(i)&255;
+  return new Blob([u8],{type:'application/pdf'});
+}
+const bolehPernyataan=s=>s&&s.jemput==='ya'&&(!ME||bolehLihat(s));
+const tombolPernyataan=(s,pratinjau)=>`<div class="acts">${pratinjau?`<button class="btn sm" data-act="previewPernyataan" data-id="${s.id}">${ic("eye")} Pratinjau surat pernyataan</button>`:""}<button class="btn sm pri" data-act="dlPernyataan" data-id="${s.id}">${ic("down")} Unduh surat pernyataan</button></div>`;
 function unduhNominatif(s){
   const n=new Date(),st=`${n.getFullYear()}${pad2(n.getMonth()+1)}${pad2(n.getDate())}${pad2(n.getHours())}${pad2(n.getMinutes())}${pad2(n.getSeconds())}`;
   downloadBlob(pdfNominatif(s),`NOMINATIF ${st}${s.kapal}.pdf`.replace(/[\\/:*?"<>|]/g,'-'));toast('Daftar nominatif diunduh');
@@ -1854,7 +1923,7 @@ function vDetail(s){
   const reqT=s.jemput==='tidak';
   const steps=[
     step(s.nomor?'done':'now',1,'Surat tugas',`${s.nomor?'Nomor '+esc(s.nomor)+'. ':'Unduh, sahkan di Srikandi, lalu catat nomornya. '}${s.fileST?'Berkas sudah diunggah.':''}<div class="acts"><button class="btn sm" data-act="previewST" data-id="${s.id}">${ic('eye')} Pratinjau</button><button class="btn sm pri" data-act="dlST" data-id="${s.id}">${ic('down')} Unduh DOCX</button>${can('st.create')?`<button class="btn sm" data-act="catatST" data-id="${s.id}">${ic('upload')} Catat hasil Srikandi</button>`:''}${s.fileST?`<button class="btn sm" data-act="openFile" data-file="${s.fileST}">Lihat berkas</button>`:''}</div>`),
-    step(stKonf,2,'Notifikasi ke agen & konfirmasi transportasi',s.jemput?`<div class="alert ${s.jemput==='ya'?'ok':'info'} mt2">${ic('check')}<span><b>${jemputTeks(s)}.</b> ${s.jemput==='ya'?'Tidak ada tagihan (Rp 0).':'Surat tagihan diperlukan.'}${jwbMeta(s)?`<br>${jwbMeta(s)}`:''}</span></div>${can('st.create')&&!t?`<div class="acts"><button class="btn sm ghost" data-act="catatJemput" data-id="${s.id}">Koreksi jawaban</button></div>`:''}`:`Belum dijawab agen.${s.notif&&s.notif[1]?` WA dibuka untuk dikirim ${waktu(s.notif[1])}.`:''}<div class="acts">${waBtn(1,s.notif&&s.notif[1]?'Kirim ulang WA':'Kirim WA ke agen')}${can('st.create')?`<button class="btn sm" data-act="catatJemput" data-id="${s.id}">Agen menjawab di luar aplikasi</button>`:''}</div>`),
+    step(stKonf,2,'Notifikasi ke agen & konfirmasi transportasi',s.jemput?`<div class="alert ${s.jemput==='ya'?'ok':'info'} mt2">${ic('check')}<span><b>${jemputTeks(s)}.</b> ${s.jemput==='ya'?'Tidak ada tagihan (Rp 0).':'Surat tagihan diperlukan.'}${jwbMeta(s)?`<br>${jwbMeta(s)}`:''}</span></div>${s.jemput==='ya'?tombolPernyataan(s,true):''}${can('st.create')&&!t?`<div class="acts"><button class="btn sm ghost" data-act="catatJemput" data-id="${s.id}">Koreksi jawaban</button></div>`:''}`:`Belum dijawab agen.${s.notif&&s.notif[1]?` WA dibuka untuk dikirim ${waktu(s.notif[1])}.`:''}<div class="acts">${waBtn(1,s.notif&&s.notif[1]?'Kirim ulang WA':'Kirim WA ke agen')}${can('st.create')?`<button class="btn sm" data-act="catatJemput" data-id="${s.id}">Agen menjawab di luar aplikasi</button>`:''}</div>`),
     step(s.jemput==='ya'?'wait':t?'done':reqT?'now':'wait',3,'Tagihan',s.jemput==='ya'?'Tidak diperlukan.':!reqT?'Menunggu jawaban agen.':!t?`<div class="acts">${can('tagihan')?`<button class="btn sm pri" data-act="genTagihan" data-id="${s.id}">${ic('file')} Generate tagihan</button>`:'Akun Anda tidak berhak membuat tagihan.'}</div>`:
       `${esc(t.nomor)}, total Rp ${rp(totalTagihan(t))}.${s.notif&&s.notif[2]?` WA dibuka untuk dikirim ${waktu(s.notif[2])}.`:''}<div class="acts"><button class="btn sm" data-act="previewNominatif" data-id="${s.id}">${ic('eye')} Pratinjau nominatif</button><button class="btn sm pri" data-act="dlNominatif" data-id="${s.id}">${ic('down')} Unduh PDF</button>${can('tagihan')&&!b?`<button class="btn sm" data-act="genTagihan" data-id="${s.id}">${ic('edit')} Ubah</button>`:''}${waBtn(2,s.notif&&s.notif[2]?'Kirim ulang WA':'Kirim WA tagihan')}</div>`),
     step(s.jemput==='ya'?'wait':b&&b.status!=='ditolak'?'done':t?'now':'wait',4,'Upload bukti bayar oleh agen',s.jemput==='ya'?'Tidak diperlukan.':b?`${esc(b.nama)}${b.bank?` (${esc(b.bank)}${b.norek?` ${esc(b.norek)}`:''})`:''}, transfer ${tglID(b.tgl)}${b.at?`, dikirim ${waktu(b.at)}`:''}.${b.status==='ditolak'?` Ditolak: ${esc(b.alasan)}`:''}<div class="mt2" style="max-width:300px"><button class="bukti-thumb" data-act="lihatBukti" data-id="${s.id}" data-thumb="${b.fileId}" aria-label="Lihat bukti transfer"></button></div><div class="acts"><button class="btn sm" data-act="lihatBukti" data-id="${s.id}">${ic('eye')} Lihat bukti transfer</button></div>`:lewatBatas(s)?'<span class="tag bad">Lewat batas pembayaran</span>':'Menunggu agen.'),
@@ -1897,7 +1966,7 @@ function renderSetoranList(){
     <td class="hd-cell"><span class="strong">${esc(a.nama||'-')}</span><div class="small muted">${esc((a.kab||'').replace(/^(Kota|Kabupaten)\s+/,''))}${ME.wilker?'':` | Wilker ${esc(wkNama(s.wilker))}`}</div></td>
     <td data-l="Kapal"><span>${esc(s.kapal)}</span></td><td data-l="No. ST" class="small"><span>${esc(s.nomor||'-')}</span></td>
     <td data-l="Transport" class="right mono"><span>${rp(tr)}</span></td><td data-l="Uang Harian" class="right mono"><span>${rp(jumlahKol(t,'uangHarian'))}</span></td><td data-l="Penginapan" class="right mono"><span>${rp(jumlahKol(t,'penginapan'))}</span></td>
-    <td data-l="Tgl Bayar" class="small"><span>${b?`${tglPendek(b.tgl)}<br>${esc(b.nama)}${b.bank?`<br><span class="muted">${esc(b.bank)}</span>`:''}`:'-'}</span></td><td class="acts">${stageTag(s)}${s.jemput?`<div class="small muted mt2">${jemputTeks(s)}</div>`:''}${t?`<div class="wrap-row mt2"><button class="btn sm" data-act="dlNominatif" data-id="${s.id}">${ic('down')} Nominatif</button>${b?`<button class="btn sm" data-act="lihatBukti" data-id="${s.id}">${ic('eye')} Bukti transfer</button>`:''}</div>`:''}</td></tr>`;}).join('')}</tbody></table></div>${pagerHtml(rows.length,pg,size,'setoranPage')}`:`<div class="empty">Belum ada data yang cocok.</div>`;
+    <td data-l="Tgl Bayar" class="small"><span>${b?`${tglPendek(b.tgl)}<br>${esc(b.nama)}${b.bank?`<br><span class="muted">${esc(b.bank)}</span>`:''}`:'-'}</span></td><td class="acts">${stageTag(s)}${s.jemput?`<div class="small muted mt2">${jemputTeks(s)}</div>`:''}${s.jemput==='ya'?`<div class="wrap-row mt2"><button class="btn sm" data-act="dlPernyataan" data-id="${s.id}">${ic('down')} Surat pernyataan</button></div>`:''}${t?`<div class="wrap-row mt2"><button class="btn sm" data-act="dlNominatif" data-id="${s.id}">${ic('down')} Nominatif</button>${b?`<button class="btn sm" data-act="lihatBukti" data-id="${s.id}">${ic('eye')} Bukti transfer</button>`:''}</div>`:''}</td></tr>`;}).join('')}</tbody></table></div>${pagerHtml(rows.length,pg,size,'setoranPage')}`:`<div class="empty">Belum ada data yang cocok.</div>`;
 }
 
 /* ================= Tampilan agen ================= */
@@ -1952,7 +2021,7 @@ function vAgenKapal(s){
   if(k==='konfirmasi')aksi=`<div class="card"><div class="hd"><h2>Formulir biaya layanan</h2></div><div class="bd stack"><p>Apakah agen menyediakan transportasi untuk <b class="strong">${s.petugas.length} petugas</b> pemeriksa kapal ini?</p>
     <div class="grid2 pilih-trans"><button class="opt ya" data-act="agenJemput" data-id="${s.id}" data-v="ya"><span class="pt-ic">${ic('mobil')}</span><b>Disediakan agen</b><small>Agen menjemput dan mengantar petugas.</small><span class="tag ok">Tanpa tagihan (Rp 0)</span></button>
     <button class="opt tidak" data-act="agenJemput" data-id="${s.id}" data-v="tidak"><span class="pt-ic">${ic('struk')}</span><b>Tidak disediakan</b><small>Biaya transportasi petugas ditagihkan lewat invoice.</small><span class="tag warn">Ada tagihan</span></button></div></div></div>`;
-  else if(k==='jemput')aksi=`<div class="alert ok">${ic('check')}<span>Transportasi petugas disediakan agen. Tidak ada tagihan.</span></div>`;
+  else if(k==='jemput')aksi=`<div class="alert ok">${ic('check')}<span>Transportasi petugas disediakan agen. Tidak ada tagihan.</span></div><div class="card"><div class="hd"><h2>Surat Pernyataan</h2></div><div class="bd stack" style="gap:10px"><p class="small muted">Unduh dan tanda tangani surat pernyataan bahwa petugas dijemput dan difasilitasi transportasinya oleh agen.</p>${tombolPernyataan(s)}</div></div>`;
   else if(k==='perlu')aksi=`<div class="alert info">${ic('file')}<span>Tagihan sedang disiapkan petugas. Anda akan menerima notifikasi WhatsApp setelah terbit.</span></div>`;
   if(!t)return `<div class="wrap-row" style="margin-bottom:12px">${stageTag(s)}</div><div class="stack">${aksi}
   <div class="card"><div class="hd"><h2>Informasi Kapal</h2></div><div class="bd"><dl class="kv"><dt>Kapal</dt><dd>${esc(namaKapal(s))}</dd><dt>Posisi</dt><dd>${esc(s.posisi)}</dd><dt>Tgl pemeriksaan</dt><dd>${tglID(s.tanggal)}</dd><dt>Jumlah petugas</dt><dd>${s.petugas.length} orang</dd><dt>Surat tugas</dt><dd>${esc(s.nomor||'Dalam proses')}</dd></dl></div></div></div>`;
@@ -2135,6 +2204,12 @@ const actions={
   previewNominatif(el){const s=findST(el.dataset.id);if(!s||!s.tagihan||!bolehLihat(s))return;
     actions._previewDl=()=>unduhNominatif(s);
     openModal({title:`Daftar Nominatif - ${s.kapal}`,wide:true,body:`<div class="bukti-view"><iframe src="${urlBerkas(pdfNominatif(s))}" title="Daftar nominatif"></iframe></div>`,foot:`<button class="btn" data-act="closeModal">Tutup</button><button class="btn pri" data-act="_previewDl">${ic('down')} Unduh PDF</button>`});},
+  async dlPernyataan(el){const s=findST(el.dataset.id);if(!bolehPernyataan(s))return;
+    try{downloadBlob(await pdfPernyataan(s),`SURAT PERNYATAAN ${s.kapal}.pdf`.replace(/[\\/:*?"<>|]/g,'-'));toast('Surat pernyataan diunduh');}catch(e){toast('Surat pernyataan gagal dibuat','bad');}},
+  async previewPernyataan(el){const s=findST(el.dataset.id);if(!bolehPernyataan(s))return;
+    let blob;try{blob=await pdfPernyataan(s);}catch(e){return toast('Surat pernyataan gagal dibuat','bad');}
+    actions._previewDl=()=>actions.dlPernyataan({dataset:{id:s.id}});
+    openModal({title:`Surat Pernyataan - ${s.kapal}`,wide:true,body:`<div class="bukti-view"><iframe src="${urlBerkas(blob)}" title="Surat pernyataan"></iframe></div>`,foot:`<button class="btn" data-act="closeModal">Tutup</button><button class="btn pri" data-act="_previewDl">${ic('down')} Unduh PDF</button>`});},
   openFile(el){openFile(el.dataset.file);},
   sort(el){const{t,c:k}=el.dataset,s=sortAktif(t),awal=SORT_KOL[t][k][2]||1;
     if(!s||s.c!==k)sortPilih[t]={c:k,d:awal};else if(s.d===awal)sortPilih[t]={c:k,d:-awal};else delete sortPilih[t];
