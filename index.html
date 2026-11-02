@@ -213,11 +213,27 @@ a.stat:hover{border-color:var(--line2)}
 .log li{padding:9px 0;border-bottom:1px solid var(--line)}.log li:last-child{border:0}
 
 .jenis-grup{display:grid;gap:7px}
-#jenis-grid{display:grid;gap:10px}
-#jenis-grid .jenis-grup{grid-template-columns:150px minmax(0,1fr);gap:6px 12px;align-items:start}
-#jenis-grid .lbl{padding-top:7px;line-height:1.3}
+.jenis-bd{container-type:inline-size;gap:12px}
+#jenis-grid{display:grid;gap:12px}
+#jenis-grid .jenis-grup{gap:6px}
+#jenis-grid .lbl{line-height:1.3}
 #jenis-grid .jenis-grid{display:flex;flex-wrap:wrap;gap:6px}
-#jenis-grid .opt{display:inline-flex;align-items:center;gap:7px;width:auto;min-height:34px;padding:5px 11px 5px 8px;border-radius:9px;font-size:13.5px}
+#jenis-grid .opt{display:flex;flex:1 1 auto;align-items:center;gap:7px;width:auto;min-height:36px;padding:5px 11px 5px 8px;border-radius:9px;font-size:13.5px}
+.jb{display:flex;align-items:center;justify-content:space-between;gap:12px;min-width:0}
+.jb-tumpuk{display:grid;gap:6px}
+.jb-tumpuk .jb-isi{min-width:0}
+@container (min-width:480px){
+  #jenis-grid .jenis-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}
+  #jenis-grid .opt{width:100%}
+}
+@container (min-width:640px){
+  #jenis-grid .jenis-grup,.jb,.jb-tumpuk{display:grid;grid-template-columns:150px minmax(0,1fr);gap:12px}
+  #jenis-grid .jenis-grup{align-items:start}
+  #jenis-grid .lbl{padding-top:9px}
+  .jb-lanjut,.jenis-dipilih{padding-left:162px}
+  #orang-seg{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));width:100%}
+  #orang-seg button{justify-content:center}
+}
 #jenis-grid .opt b{font-weight:550;white-space:nowrap}
 #jenis-grid .cek{width:16px;height:16px;flex:none;display:grid;place-items:center;border:1.5px solid var(--line2);border-radius:4px;background:var(--surface)}
 #jenis-grid .opt.on .cek{background:var(--brand);border-color:var(--brand);color:var(--brand-ink)}
@@ -226,8 +242,6 @@ a.stat:hover{border-color:var(--line2)}
 .cek-jarak{display:flex;align-items:center;gap:9px;min-height:38px;font-weight:550;cursor:pointer}
 .cek-jarak input{width:18px;height:18px;margin:0;flex:none;accent-color:var(--brand);cursor:pointer}
 @media (max-width:860px){
-  #jenis-grid .jenis-grup{grid-template-columns:minmax(0,1fr);gap:5px}
-  #jenis-grid .lbl{padding-top:0}
   #jenis-grid .opt{min-height:38px}
 }
 .opt{position:relative}
@@ -1769,12 +1783,12 @@ function vSuratForm(s){
   const a=v.agenId?agenOf(v.agenId):null;
   const pj=DB.settings.pejabat.filter(p=>p.nama);
   return `<form class="split" data-form="surat" data-id="${s?s.id:''}" novalidate><div class="stack">
-  <div class="card"><div class="hd"><h2>Jenis pemeriksaan</h2><span class="small muted"><span id="jenis-count">${v.jenis.length} dipilih</span>, bisa lebih dari satu</span></div><div class="bd stack">
-    ${ME.wilker?`<div class="row between"><span class="lbl">Wilayah kerja</span><span class="tag info">${esc(wkNama(ME.wilker))}</span></div>`:`<div class="field"><label class="req" for="f_wilker">Wilayah kerja</label><select class="inp" id="f_wilker" name="wilker"><option value="">Pilih wilayah kerja</option>${WILKER.map(w=>`<option value="${w.id}" ${v.wilker===w.id?'selected':''}>${esc(w.nama)}</option>`).join('')}</select></div>`}
+  <div class="card"><div class="hd"><h2>Jenis pemeriksaan</h2><span class="small muted"><span id="jenis-count">${v.jenis.length} dipilih</span>, bisa lebih dari satu</span></div><div class="bd stack jenis-bd">
+    ${ME.wilker?`<div class="jb"><span class="lbl">Wilayah kerja</span><div class="jb-isi"><span class="tag info">${esc(wkNama(ME.wilker))}</span></div></div>`:`<div class="jb jb-tumpuk"><label class="lbl req" for="f_wilker">Wilayah kerja</label><div class="jb-isi"><select class="inp" id="f_wilker" name="wilker"><option value="">Pilih wilayah kerja</option>${WILKER.map(w=>`<option value="${w.id}" ${v.wilker===w.id?'selected':''}>${esc(w.nama)}</option>`).join('')}</select></div></div>`}
     <div id="jenis-grid">${jenisButtons()}</div>
-    <div class="row between"><span class="lbl">Jumlah petugas</span><div class="seg" id="orang-seg">${orangButtons()}</div></div>
-    <p class="hint" id="format-hint">${formatHint()}</p>
-    ${pilihJarak(jarakST(v))}
+    <div class="jb"><span class="lbl">Jumlah petugas</span><div class="jb-isi"><div class="seg" id="orang-seg">${orangButtons()}</div></div></div>
+    <p class="hint jb-lanjut" id="format-hint">${formatHint()}</p>
+    <div class="jb-lanjut">${pilihJarak(jarakST(v))}</div>
   </div></div>
   <div class="card"><div class="hd"><h2>Surat dari agen</h2></div><div class="bd grid2">
     <div class="field span2"><label class="req" for="f_agenQ">Agen Kapal</label><div class="combo"><input class="inp" id="f_agenQ" data-input="agenCombo" autocomplete="off" placeholder="Ketik nama agen, kota, atau email" value="${a?esc(a.nama):''}"><div class="combo-list" id="agen-list" hidden></div></div><input type="hidden" name="agenId" value="${v.agenId||''}"></div>
@@ -1802,10 +1816,11 @@ function vSuratForm(s){
   <div class="form-act"><a class="btn" href="#/${s?'surat/'+s.id:'surat'}">Batal</a><button class="btn pri">${s?'Simpan perubahan':'Simpan surat'}</button></div>
   </div></form>`;
 }
-const jenisButtons=()=>GRUP_JENIS.map(([g,judul])=>`<div class="jenis-grup"><div class="lbl">${judul}</div><div class="jenis-grid">${URUT_JENIS.filter(k=>JENIS[k].grup===g).map(k=>{const j=JENIS[k],on=formJenis.includes(k);return `<button type="button" class="opt ${on?'on':''}" data-act="setJenis" data-k="${k}" aria-pressed="${on}" title="${esc(j.nama)}"><span class="cek">${on?ic('check'):''}</span><b>${esc(j.label)}</b></button>`;}).join('')}</div></div>`).join('')+`<p class="hint jenis-dipilih">${formJenis.length?urutJenis(formJenis).map(k=>`<b>${esc(JENIS[k].label)}</b>: ${esc(JENIS[k].nama)}`).join('; '):'Belum ada jenis pemeriksaan yang dipilih.'}</p>`;
+const jenisButtons=()=>GRUP_JENIS.map(([g,judul])=>`<div class="jenis-grup"><div class="lbl">${judul}</div><div class="jenis-grid">${URUT_JENIS.filter(k=>JENIS[k].grup===g).map(k=>{const j=JENIS[k],on=formJenis.includes(k);return `<button type="button" class="opt ${on?'on':''}" data-act="setJenis" data-k="${k}" aria-pressed="${on}" title="${esc(j.nama)}"><span class="cek">${on?ic('check'):''}</span><b>${esc(j.label)}</b></button>`;}).join('')}</div></div>`).join('')+(formJenis.length?`<p class="hint jenis-dipilih">${urutJenis(formJenis).map(k=>`<b>${esc(JENIS[k].label)}</b>: ${esc(JENIS[k].nama)}`).join('; ')}</p>`:'');
 const orangButtons=()=>[1,2,3].map(n=>`<button type="button" class="${formOrang===n?'on':''}" data-act="setOrang" data-n="${n}" aria-pressed="${formOrang===n}">${n} orang</button>`).join('');
 const CONTOH={cop:3,'sscec+p3k':2,penumpang:3};
-const formatHint=()=>{if(!formJenis.length)return 'Pilih jenis pemeriksaan terlebih dahulu.';const lay=formOrang<3?'Nama petugas ditulis langsung di badan surat.':'Nama petugas ditulis pada lampiran halaman 2.';
+const formatHint=()=>{const lay=formOrang<3?'Nama petugas ditulis langsung di badan surat.':'Nama petugas ditulis pada lampiran halaman 2.';
+  if(!formJenis.length)return lay;
   if(formOrang===1)return lay+' Format 1 orang tidak ada di contoh, jadi disusun dari format 2 orang.';
   return lay+(CONTOH[kunciJenis(formJenis)]===formOrang?' Format ini sama dengan contoh surat.':' Kombinasi ini tidak ada di contoh, jadi disusun dari format yang paling dekat.');};
 function afterSuratForm(){renderPicker();}
