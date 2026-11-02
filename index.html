@@ -220,7 +220,7 @@ a.stat:hover{border-color:var(--line2)}
 #jenis-grid .jenis-grid{display:flex;flex-wrap:wrap;gap:6px}
 #jenis-grid .opt{display:flex;flex:1 1 auto;align-items:center;gap:7px;width:auto;min-height:36px;padding:5px 11px 5px 8px;border-radius:9px;font-size:13.5px}
 .jb{display:flex;align-items:center;justify-content:space-between;gap:12px;min-width:0}
-.jb-tumpuk{display:grid;gap:6px}
+.jb-tumpuk{display:grid;gap:6px;justify-content:stretch}
 .jb-tumpuk .jb-isi{min-width:0}
 @container (min-width:480px){
   #jenis-grid .jenis-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}
@@ -271,6 +271,9 @@ a.stat:hover{border-color:var(--line2)}
 .petugas-list button.dipilih .ava{background:var(--brand);color:var(--brand-ink)}
 .petugas-list button.dipilih>svg.i{color:var(--brand-text)}
 .petugas-list.penuh button:not(.dipilih){opacity:.55}
+.petugas-pilih{padding:0;border:0;border-radius:0;max-height:none;overflow:visible}
+.petugas-pilih[hidden]{display:none}
+#petugas-list{max-height:calc(340px - var(--terpilih,0)*62px)}
 .perm-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:40px;padding:6px 20px}
 .perm-row{display:flex;align-items:center;justify-content:space-between;gap:14px;min-height:54px;padding:8px 0;border-bottom:1px solid var(--line);cursor:pointer}
 .switch{position:relative;width:40px;height:23px;flex:none}
@@ -1807,6 +1810,7 @@ function vSuratForm(s){
   </div><div class="stack sticky">
   <div class="card"><div class="hd"><h2>Petugas</h2><span class="small muted" id="pick-count"></span></div><div class="bd stack">
     <div class="search">${ic('search')}<input class="inp" data-input="petugasQ" placeholder="Cari petugas" aria-label="Cari petugas"></div>
+    <div class="petugas-list petugas-pilih" id="petugas-pilih" hidden></div>
     <div class="petugas-list" id="petugas-list"></div>
   </div></div>
   <div class="card"><div class="hd"><h2>Pengesahan</h2></div><div class="bd stack">
@@ -1827,12 +1831,14 @@ function afterSuratForm(){renderPicker();}
 function renderPicker(){
   const input=$('[data-input=petugasQ]'),ql=(input?input.value:'').trim().toLowerCase(),box=$('#petugas-list');
   const baris=(u,no)=>`<button type="button" class="${no?'dipilih':''}" data-act="${no?'unpick':'pick'}" data-id="${u.id}" aria-pressed="${!!no}"><span class="ava">${no||esc(initials(u.nama))}</span><span class="grow"><span class="strong">${esc(u.nama)}</span><small>${esc(u.jabatan||'')}${u.wilker?` | Wilker ${esc(wkNama(u.wilker))}`:''}</small></span>${no?ic('check'):''}</button>`;
-  // Yang terpilih selalu tampil di atas sesuai urutan cetak pada surat, walau sedang mencari
+  // Yang terpilih selalu tampil di barisan sendiri sesuai urutan cetak pada surat, walau sedang mencari
   const terpilih=ui.pick.map((id,i)=>{const u=petugasOf(id);return u?baris(u,i+1):'';}).join('');
   const sisa=DB.petugas.filter(u=>u.aktif&&!ui.pick.includes(u.id)&&(!ql||(u.nama+' '+u.nip+' '+u.jabatan).toLowerCase().includes(ql))).sort((a,b)=>(b.wilker===ME.wilker&&!!ME.wilker)-(a.wilker===ME.wilker&&!!ME.wilker));
   $('#pick-count').textContent=`${ui.pick.length} dari ${formOrang} dipilih`;
   box.classList.toggle('penuh',ui.pick.length>=formOrang);
-  box.innerHTML=(terpilih+sisa.map(u=>baris(u)).join(''))||`<div class="empty small">Tidak ada petugas yang cocok.</div>`;
+  const pilih=$('#petugas-pilih');pilih.innerHTML=terpilih;pilih.hidden=!terpilih;
+  box.style.setProperty('--terpilih',ui.pick.length);
+  box.innerHTML=sisa.map(u=>baris(u)).join('')||`<div class="empty small">Tidak ada petugas yang cocok.</div>`;
 }
 
 /* ================= Detail surat & alur RPL ================= */
