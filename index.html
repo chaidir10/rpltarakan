@@ -458,6 +458,7 @@ a.stat:hover{border-color:var(--line2)}
 @keyframes scanGaris{from{top:10%}to{top:88%}}
 @media (prefers-reduced-motion:no-preference){.scan-on .scan-garis{animation:scanGaris 2s ease-in-out infinite alternate}}
 @media (max-width:860px){.content:has(.scan){padding-bottom:12px}.scan{max-width:none}.scan-view{height:calc(100dvh - 186px - env(safe-area-inset-bottom));min-height:340px;max-height:none}}
+.jarak-info{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px}
 .biaya-kepala{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px}
 .seg-moda{flex:0 1 auto}.seg-moda button{white-space:nowrap}
 .bukti-klaim[hidden]{display:none}
@@ -2520,7 +2521,7 @@ const actions={
     openModal({title:'Generate Tagihan',form:'tagihan',wide:true,body:`<input type="hidden" name="id" value="${s.id}"><div class="stack">
       <div class="grid3">${field('Nomor Tugas Pemeriksaan','nomorST',s.nomor,{req:1,ph:'Nomor surat tugas dari Srikandi',ro:!!s.nomor})}
       ${field('Tanggal tagihan','tanggal',t?t.tanggal:today(),{req:1,type:'date'})}${field('Tempat','tempat',t&&t.tempat?t.tempat:(wk.tempat||''),{req:1})}</div>
-      ${pilihJarak(j)}<p class="hint" id="jarak-hint" style="margin-top:-6px">${hintJarak(j,ya)}</p>
+      <div class="jarak-info"><span class="lbl">Jarak sandar kapal dari bibir pantai</span><b>${PILIH_JARAK.find(x=>x[0]===j)[1]}</b><input type="hidden" id="f_jarak" name="jarak" value="${j}"></div><p class="hint" id="jarak-hint" style="margin-top:-6px">${hintJarak(j,ya)}</p>
       <div class="stack" style="gap:10px"><span class="lbl">Rincian biaya per petugas (Rp)</span>
       ${s.petugas.map(id=>barisTagihan(s,id,j,ya)).join('')}</div>
       <p class="hint">Tagihan langsung terbit tanpa pengesahan. Setelah disimpan, kirim WA ke agen dan unduh daftar nominatif.</p></div>`,
