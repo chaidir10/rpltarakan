@@ -2098,7 +2098,6 @@ function vSuratForm(s){
     ${ME.wilker?`<div class="jb"><span class="lbl">Wilayah kerja</span><div class="jb-isi"><span class="tag info">${esc(wkNama(ME.wilker))}</span></div></div>`:`<div class="jb jb-tumpuk"><label class="lbl req" for="f_wilker">Wilayah kerja</label><div class="jb-isi"><select class="inp" id="f_wilker" name="wilker"><option value="">Pilih wilayah kerja</option>${WILKER.map(w=>`<option value="${w.id}" ${v.wilker===w.id?'selected':''}>${esc(w.nama)}</option>`).join('')}</select></div></div>`}
     <div id="jenis-grid">${jenisButtons()}</div>
     <div class="jb jb-seg"><span class="lbl">Jumlah petugas</span><div class="jb-isi"><div class="seg" id="orang-seg">${orangButtons()}</div></div></div>
-    <p class="hint jb-lanjut" id="format-hint">${formatHint()}</p>
     ${pilihJarak(jarakST(v))}
   </div></div>
   <div class="card"><div class="hd"><h2>Surat dari agen</h2></div><div class="bd grid2">
@@ -2131,10 +2130,7 @@ function vSuratForm(s){
 const jenisButtons=()=>GRUP_JENIS.map(([g,judul])=>`<div class="jenis-grup"><div class="lbl">${judul}</div><div class="jenis-grid">${URUT_JENIS.filter(k=>JENIS[k].grup===g).map(k=>{const j=JENIS[k],on=formJenis.includes(k);return `<button type="button" class="opt ${on?'on':''}" data-act="setJenis" data-k="${k}" aria-pressed="${on}" title="${esc(j.nama)}"><span class="cek">${on?ic('check'):''}</span><b>${esc(j.label)}</b></button>`;}).join('')}</div></div>`).join('')+(formJenis.length?`<p class="hint jenis-dipilih">${urutJenis(formJenis).map(k=>`<b>${esc(JENIS[k].label)}</b>: ${esc(JENIS[k].nama)}`).join('; ')}</p>`:'');
 const orangButtons=()=>[1,2,3].map(n=>`<button type="button" class="${formOrang===n?'on':''}" data-act="setOrang" data-n="${n}" aria-pressed="${formOrang===n}">${n} orang</button>`).join('');
 const CONTOH={cop:3,'sscec+p3k':2,penumpang:3};
-const formatHint=()=>{const lay=formOrang<3?'Nama petugas ditulis langsung di badan surat.':'Nama petugas ditulis pada lampiran halaman 2.';
-  if(!formJenis.length)return lay;
-  if(formOrang===1)return lay+' Format 1 orang tidak ada di contoh, jadi disusun dari format 2 orang.';
-  return lay+(CONTOH[kunciJenis(formJenis)]===formOrang?' Format ini sama dengan contoh surat.':' Kombinasi ini tidak ada di contoh, jadi disusun dari format yang paling dekat.');};
+
 function afterSuratForm(){renderPicker();}
 function renderPicker(){
   const input=$('[data-input=petugasQ]'),ql=(input?input.value:'').trim().toLowerCase(),box=$('#petugas-list');
@@ -2469,11 +2465,11 @@ const actions={
   setJenis(el){const k=el.dataset.k,ada=formJenis.includes(k);
     formJenis=urutJenis(ada?formJenis.filter(x=>x!==k):[...formJenis,k]);
     const bawaan=CONTOH[kunciJenis(formJenis)];if(bawaan&&!ui.pick.length)formOrang=bawaan;
-    const y=scrollY;$('#jenis-grid').innerHTML=jenisButtons();$('#orang-seg').innerHTML=orangButtons();$('#format-hint').textContent=formatHint();$('#jenis-count').textContent=formJenis.length?`${formJenis.length} dipilih`:'Belum dipilih';
+    const y=scrollY;$('#jenis-grid').innerHTML=jenisButtons();$('#orang-seg').innerHTML=orangButtons();$('#jenis-count').textContent=formJenis.length?`${formJenis.length} dipilih`:'Belum dipilih';
     // Hal hanya diganti selama petugas belum mengubahnya sendiri
     const hal=$('form[data-form=surat]').elements.hal;if(!hal.value.trim()||hal.value===halOtomatis)hal.value=halDari(formJenis);halOtomatis=halDari(formJenis);
     scrollTo(0,y);renderPicker();},
-  setOrang(el){formOrang=+el.dataset.n;$('#orang-seg').innerHTML=orangButtons();$('#format-hint').textContent=formatHint();ui.pick=ui.pick.slice(0,formOrang);renderPicker();},
+  setOrang(el){formOrang=+el.dataset.n;$('#orang-seg').innerHTML=orangButtons();ui.pick=ui.pick.slice(0,formOrang);renderPicker();},
   pick(el){if(ui.pick.length>=formOrang)return toast(`Maksimal ${formOrang} petugas untuk format ini`,'bad');ui.pick.push(el.dataset.id);const q=$('[data-input=petugasQ]');if(q)q.value='';renderPicker();},
   unpick(el){ui.pick=ui.pick.filter(x=>x!==el.dataset.id);renderPicker();},
   pickAgen(el){const a=agenOf(el.dataset.id),f=$('form[data-form=surat]');f.elements.agenId.value=a.id;$('#f_agenQ').value=a.nama;f.elements.agenSurat.value=a.nama;$('#agen-list').hidden=true;
