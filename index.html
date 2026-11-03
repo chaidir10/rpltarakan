@@ -163,13 +163,7 @@ a.stat:hover{border-color:var(--line2)}
 .dash{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:var(--gap);align-items:stretch;margin-top:var(--gap)}
 .dash>.card{display:flex;flex-direction:column}
 .dash>.card>.empty{margin:auto}
-.dash.adm{grid-template-columns:minmax(0,1.1fr) minmax(0,1.3fr)}
-.tbl-tindakan th,.tbl-tindakan td{padding-inline:10px;vertical-align:top}
-.tbl-tindakan th:first-child{width:46%}
-.tag-tumpuk{display:inline-flex;flex-direction:column;align-items:flex-start;gap:4px}
-.tbl-tindakan .tag{white-space:nowrap}
-@media (max-width:1560px){.dash.adm{grid-template-columns:minmax(0,1fr)}}
-@media (min-width:861px) and (max-width:1000px){.tbl th,.tbl td{padding-inline:8px}.tbl th:first-child,.tbl td:first-child{padding-left:14px}.tbl th:last-child,.tbl td:last-child{padding-right:14px}}
+.dash.adm{grid-template-columns:minmax(0,1fr) minmax(0,1.5fr)}
 /* Pendapatan */
 .pend-filter{display:flex;gap:8px;flex-wrap:wrap}
 .pend-filter select.inp{width:auto}
@@ -2032,14 +2026,13 @@ function vDash(){
   </div>
   ${ME.wilker?'':kartuPendapatan()}
   <div class="dash ${ME.wilker?'':'adm'}"><div class="card"><div class="hd"><h2>Perlu tindakan</h2></div>
-  ${need.length?`${sortBar('tindakan')}<div class="tblwrap"><table class="tbl tbl-tindakan"><thead><tr>${thSort('tindakan','kapal')}${thSort('tindakan','status')}${thSort('tindakan','tanggal','Tgl Periksa','right')}</tr></thead><tbody>${sortBaris('tindakan',need).slice(0,12).map(s=>`<tr class="click" data-go="surat/${s.id}"><td class="hd-cell"><span class="strong">${esc(namaKapal(s))}</span><div class="small muted">${esc((agenOf(s.agenId)||{}).nama||'')}</div>${ME.wilker?'':`<div class="small muted">Wilker ${esc(wkNama(s.wilker))}</div>`}</td><td><span class="tag-tumpuk">${stageTag(s)}${lewatBatas(s)?'<span class="tag bad">Lewat batas bayar</span>':''}</span></td><td class="right small nowrap">${tglRingkas(s.tanggal)}</td></tr>`).join('')}</tbody></table></div>`:`<div class="empty">Tidak ada yang perlu ditindaklanjuti saat ini.</div>`}</div>${ME.wilker?ringkas():rekapWilker()}</div>`;
+  ${need.length?`${sortBar('tindakan')}<div class="tblwrap"><table class="tbl"><thead><tr>${thSort('tindakan','kapal')}${thSort('tindakan','status')}${thSort('tindakan','tanggal','Tgl Periksa','right')}</tr></thead><tbody>${sortBaris('tindakan',need).slice(0,12).map(s=>`<tr class="click" data-go="surat/${s.id}"><td class="hd-cell"><span class="strong">${esc(namaKapal(s))}</span><div class="small muted">${esc((agenOf(s.agenId)||{}).nama||'')}${ME.wilker?'':` | Wilker ${esc(wkNama(s.wilker))}`}</div></td><td>${stageTag(s)}${lewatBatas(s)?' <span class="tag bad">Lewat batas bayar</span>':''}</td><td class="right small nowrap">${tglID(s.tanggal)}</td></tr>`).join('')}</tbody></table></div>`:`<div class="empty">Tidak ada yang perlu ditindaklanjuti saat ini.</div>`}</div>${ME.wilker?ringkas():rekapWilker()}</div>`;
 }
 /* Pendapatan = tagihan berstatus valid, dihitung menurut tanggal transfer */
 function periodeDash(){const n=today();if(!ui.dash)ui.dash={y:+n.slice(0,4),m:+n.slice(5,7)};return ui.dash;}
 const stValid=l=>l.filter(s=>stage(s)==='valid'&&s.bayar&&s.bayar.tgl);
 const jmlPeriode=(l,y,m1,m2)=>stValid(l).filter(s=>{const Y=+s.bayar.tgl.slice(0,4),M=+s.bayar.tgl.slice(5,7);return Y===y&&M>=m1&&M<=m2;}).reduce((a,s)=>a+totalTagihan(s.tagihan),0);
 const BLN3=BULAN.map(b=>b.slice(0,3));
-const tglRingkas=d=>{if(!d)return '';const[y,m,g]=d.split('-');return `${+g} ${BLN3[+m-1]} ${y}`;};
 const ringkasRp=n=>n>=1e9?(n/1e9).toFixed(n%1e9?2:0).replace('.',',')+' M':n>=1e6?(n/1e6).toFixed(n%1e6?2:0).replace('.',',').replace(/,?0+$/,x=>x.includes(',')?'':x)+' jt':n>=1e3?Math.round(n/1e3)+' rb':String(n);
 function kartuPendapatan(){
   const {y,m}=periodeDash(),now=+today().slice(0,4),tahunData=stValid(DB.st).map(s=>+s.bayar.tgl.slice(0,4));
