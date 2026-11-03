@@ -1592,12 +1592,12 @@ function pdfNominatif(s){
 const muatGambar=url=>new Promise((res,rej)=>{const im=new Image();im.onload=()=>res(im);im.onerror=rej;im.src=url;});
 async function pdfPernyataan(s){
   const a=agenOf(s.agenId)||{},wk=WILKER.find(w=>w.id===s.wilker)||{};
-  const PH=842,L=85,R=524,FS=11,LH=14.5,halaman=[[]];
+  const PH=842,L=85,R=524,FS=11,LH=14,halaman=[[]];
   const pe=t=>String(t).replace(/[^\x20-\x7e]/g,'?').replace(/([\\()])/g,'\\$1');
   const tulis=(x,y,t,o={})=>{const sz=o.size||FS,w=lebarTeks(t,sz,o.bold),xx=o.align==='c'?x-w/2:o.align==='r'?x-w:x;halaman[halaman.length-1].push(`BT /${o.bold?"F2":"F1"} ${sz} Tf ${(o.tw||0).toFixed(3)} Tw ${xx.toFixed(2)} ${(PH-y).toFixed(2)} Td (${pe(t)}) Tj ET`);};
   const garis=(x1,y1,x2,y2)=>halaman[halaman.length-1].push(`.6 w ${x1.toFixed(2)} ${(PH-y1).toFixed(2)} m ${x2.toFixed(2)} ${(PH-y2).toFixed(2)} l S`);
-  let y=64;
-  const cukup=h=>{if(y+h>PH-30){halaman.push([]);y=60;}};
+  let y=50;
+  const cukup=h=>{if(y+h>PH-92){halaman.push([]);y=60;}};
   const paragraf=(t,indent=36)=>{const lebar=R-L,ls=[];let b='';String(t).split(/\s+/).filter(Boolean).forEach(k=>{const w=lebar-(ls.length?0:indent),u=b?b+' '+k:k;if(lebarTeks(u,FS)<=w||!b)b=u;else{ls.push(b);b=k;}});if(b)ls.push(b);
     ls.forEach((l,i)=>{cukup(LH);const x=L+(i?0:indent),sp=l.split(' ').length-1,tw=i<ls.length-1&&sp?(R-x-lebarTeks(l,FS))/sp:0;tulis(x,y,l,{tw});y+=LH;});};
   const kv=(k,v)=>{const ls=bungkus(v||'-',FS,R-L-140);cukup(LH*ls.length);tulis(L+18,y,k);tulis(L+130,y,':');ls.forEach(l=>{tulis(L+140,y,l);y+=LH;});};
@@ -1615,7 +1615,7 @@ async function pdfPernyataan(s){
   barisTabel(['No','Nama Petugas','NIP','Pangkat/Gol.','Jabatan'],{bold:true});
   s.petugas.forEach((id,i)=>{const u=petugasOf(id)||{};barisTabel([String(i+1),u.nama,u.nip,u.pangkat,u.jabatan]);});y+=10;
   paragraf('Atas penyediaan transportasi tersebut, biaya transportasi petugas tidak ditagihkan melalui Rekening Pemerintah Lainnya (RPL).');y+=4;
-  const SISI=68,namaAgen=bungkus(s.agenSurat||a.nama||'',8.5,R-347);cukup(LH*2+10+Math.max(8+s.petugas.length*(SISI+3),LH*2+4+SISI+10*(namaAgen.length+1)+4));
+  const SISI=60,namaAgen=bungkus(s.agenSurat||a.nama||'',8.5,R-347);cukup(LH*2+10+Math.max(8+s.petugas.length*(SISI+3),LH*2+4+SISI+10*(namaAgen.length+1)+4));
   paragraf('Demikian surat pernyataan ini dibuat dengan sebenarnya untuk dipergunakan sebagaimana mestinya.');y+=10;
   // Tanda tangan QR: petugas berjejer ke bawah di kiri, agen di sebelah kanan
   const tempat=(wk.tempat||'').toLowerCase().replace(/(^|\s)\S/g,m=>m.toUpperCase()),gambarQr=[],XA=347;
@@ -1629,6 +1629,12 @@ async function pdfPernyataan(s){
   let ya=y+LH;tulis(XA,ya,'Yang membuat pernyataan,');ya+=6;
   await pasangQr(ttdData(s,'a'),XA,ya);ya+=SISI+10;
   namaAgen.forEach(l=>{tulis(XA,ya,l,{size:8.5});ya+=10;});tulis(XA,ya,JABATAN_AGEN,{size:8.5});
+  // QR keaslian dokumen di pojok kiri bawah setiap halaman
+  const kanDok=await kanvasQr(kodeQrTtd(ttdData(s,'d')),440,2);gambarQr.push({bytes:dataBytes(kanDok.toDataURL('image/jpeg',.95)),w:kanDok.width,h:kanDok.height});
+  const noDok=gambarQr.length,SD=58,atasDok=PH-20-SD;
+  halaman.forEach(h=>{h.push(`q ${SD} 0 0 ${SD} ${L} ${(PH-atasDok-SD).toFixed(2)} cm /Im${noDok} Do Q`);
+    h.push(`BT /F2 8.5 Tf 0 Tw ${L+SD+7} ${(PH-atasDok-22).toFixed(2)} Td (Scan untuk cek keaslian dokumen) Tj ET`);
+    h.push(`BT /F1 8 Tf 0 Tw ${L+SD+7} ${(PH-atasDok-33).toFixed(2)} Td (Gunakan menu Scan QR pada aplikasi RPL Tarakan.) Tj ET`);});
   // Berkas PDF
   const objJpeg=g=>{const biner=[];for(let i=0;i<g.bytes.length;i+=8192)biner.push(String.fromCharCode.apply(null,g.bytes.subarray(i,i+8192)));return `<< /Type /XObject /Subtype /Image /Width ${g.w} /Height ${g.h} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${g.bytes.length} >>\nstream\n${biner.join('')}\nendstream`;};
   const font=b=>`<< /Type /Font /Subtype /Type1 /BaseFont /${b} /Encoding /WinAnsiEncoding >>`;
@@ -1722,8 +1728,10 @@ async function kanvasQr(bytes,lebar=440,tepi=4){
   return c;
 }
 const JABATAN_AGEN='Penanggung Jawab';
+const potongKata=(t,n)=>{t=String(t||'');return t.length<=n?t:t.slice(0,n).replace(/\s+\S*$/,'');};
 /* Tanda tangan terisi otomatis saat agen menyediakan transportasi, memakai waktu jawaban agen */
 const ttdData=(s,peran,id)=>{const at=Math.floor((s.jemputAt||s.dibuat||Date.now())/1000);
+  if(peran==='d')return{peran:'d',tgl:s.tanggal,nama:potongKata(s.agenSurat||(agenOf(s.agenId)||{}).nama,24),kapal:potongKata(s.kapal,16),tambahan:String(s.petugas.length),at};
   if(peran==='a')return{peran:'a',tgl:s.tanggal,nama:s.agenSurat||(agenOf(s.agenId)||{}).nama,kapal:s.kapal,tambahan:JABATAN_AGEN,at};
   const u=petugasOf(id)||{};return{peran:'p',tgl:s.tanggal,nama:u.nama,kapal:s.kapal,tambahan:u.nip,at};};
 /* Pemeriksaan QR: hanya aplikasi ini yang bisa membaca isinya */
@@ -1733,16 +1741,59 @@ const labelKamera=on=>{const t=$('#qr-mulai');if(t)t.innerHTML=`${ic(on?'x':'eye
 function hentikanKamera(){if(!kamera)return;kamera.aktif=false;kamera.stream&&kamera.stream.getTracks().forEach(t=>t.stop());kamera=null;labelKamera(false);}
 /* Di ponsel kamera langsung terbuka seperti pemindai QRIS; bila gagal, pilihan foto tetap tersedia */
 const kameraOtomatis=()=>{if(innerWidth<=860)actions.qrKamera({diam:true});};
-const hasilQr=d=>`<div class="scan-hasil ${d?'sah':'tolak'}"><span class="scan-tanda">${ic(d?'check':'alert')}</span><h2>${d?'Tanda tangan sah':'Tidak dikenali'}</h2><p class="small muted">${d?'QR ini diterbitkan aplikasi RPL Kapal.':'QR ini bukan tanda tangan yang diterbitkan aplikasi ini.'}</p>
-  ${d?`<dl class="kv"><dt>Penanda tangan</dt><dd class="strong">${esc(d.nama)}</dd><dt>Sebagai</dt><dd>${d.peran==='a'?'Agen':'Petugas'}</dd><dt>${d.peran==='a'?'Jabatan':'NIP'}</dt><dd>${esc(d.tambahan||'-')}</dd><dt>Kapal</dt><dd>${esc(d.kapal)}</dd><dt>Tgl pemeriksaan</dt><dd>${tglID(d.tgl)}</dd><dt>Ditandatangani</dt><dd>${waktu(d.at)}</dd></dl>`:''}
+const hasilQr=(d,ada=true,pesan)=>`<div class="scan-hasil ${d?'sah':'tolak'}"><span class="scan-tanda">${ic(d?'check':'alert')}</span><h2>${d?(d.peran==='d'?'Dokumen asli':'Tanda tangan sah'):ada?'Tidak dikenali':'QR tidak ditemukan'}</h2><p class="small muted">${d?(d.peran==='d'?'Surat pernyataan ini diterbitkan aplikasi.':'QR ini diterbitkan aplikasi.'):ada?'QR ini bukan QR yang diterbitkan aplikasi ini.':esc(pesan||'Pastikan QR di pojok kiri bawah terlihat jelas, lalu coba lagi.')}</p>
+  ${d&&d.peran==='d'?`<dl class="kv"><dt>Dokumen</dt><dd class="strong">Surat Pernyataan</dd><dt>Agen</dt><dd>${esc(d.nama)}</dd><dt>Petugas</dt><dd>${esc(d.tambahan)} orang</dd><dt>Kapal</dt><dd>${esc(d.kapal)}</dd><dt>Tgl pemeriksaan</dt><dd>${tglID(d.tgl)}</dd><dt>Diterbitkan</dt><dd>${waktu(d.at)}</dd></dl>`:d?`<dl class="kv"><dt>Penanda tangan</dt><dd class="strong">${esc(d.nama)}</dd><dt>Sebagai</dt><dd>${d.peran==='a'?'Agen':'Petugas'}</dd><dt>${d.peran==='a'?'Jabatan':'NIP'}</dt><dd>${esc(d.tambahan||'-')}</dd><dt>Kapal</dt><dd>${esc(d.kapal)}</dd><dt>Tgl pemeriksaan</dt><dd>${tglID(d.tgl)}</dd><dt>Ditandatangani</dt><dd>${waktu(d.at)}</dd></dl>`:''}
   <button type="button" class="btn pri block" data-act="qrUlang">${ic('qr')} Scan lagi</button></div>`;
-function tampilHasilQr(hasil){const b=$('#qr-hasil');if(!b)return;b.innerHTML=hasilQr(hasil?bacaQrTtd(hasil.binaryData):null);b.hidden=false;b.closest('.scan').classList.add('ada-hasil');if(navigator.vibrate)navigator.vibrate(60);}
+/* Cari QR pada foto atau PDF surat. QR keaslian di pojok kiri bawah diutamakan, QR tanda tangan menjadi cadangan. */
+const kanvasDari=(src,x,y,w,h,maks,perbesar)=>{const sk=perbesar?maks/Math.max(w,h):Math.min(1,maks/Math.max(w,h)),c=document.createElement('canvas');c.width=Math.max(1,Math.round(w*sk));c.height=Math.max(1,Math.round(h*sk));const g=c.getContext('2d',{willReadFrequently:true});g.fillStyle='#fff';g.fillRect(0,0,c.width,c.height);g.drawImage(src,x,y,w,h,0,0,c.width,c.height);return c;};
+const pilihQr=l=>l.find(d=>d&&d.peran==='d')||l.find(Boolean)||null;
+async function cariQrSurat(src){
+  const W=src.naturalWidth||src.width,H=src.naturalHeight||src.height,P=Math.max(W,H),baca=jsqr(),temuan=[];
+  const coba=c=>{const r=baca(c.getContext('2d',{willReadFrequently:true}).getImageData(0,0,c.width,c.height).data,c.width,c.height);return r&&{d:bacaQrTtd(r.binaryData),r};};
+  const utuh=kanvasDari(src,0,0,W,H,1800),h=coba(utuh);
+  if(h){if(h.d&&h.d.peran==='d')return{d:h.d,ada:true};
+    // Gambar yang hanya berisi satu QR tidak perlu ditelusuri lagi
+    if(h.d&&Math.abs(h.r.location.topRightCorner.x-h.r.location.topLeftCorner.x)>utuh.width*.4)return{d:h.d,ada:true};temuan.push(h.d);}
+  // Jendela kecil mulai dari pojok kiri bawah, supaya QR tanda tangan di dekatnya tidak mengganggu
+  let n=0;
+  const telusuri=async(sisi,langkah,hanyaPojok)=>{
+    if(sisi<90)return null;
+    const jendela=[],bawah=H-sisi,kanan=W-sisi,batas=P*.34;
+    for(let y=Math.max(0,bawah);;y=Math.max(0,y-langkah)){for(let x=0;;x=Math.min(Math.max(0,kanan),x+langkah)){const jx=Math.min(x,Math.max(0,kanan)-x),jy=Math.min(y,Math.max(0,bawah)-y);if(!hanyaPojok||(jx<batas&&jy<batas))jendela.push([x,y]);if(x>=kanan)break;}if(y<=0)break;}
+    // Urutan: pojok kiri bawah, lalu pojok lain untuk foto yang terputar atau terbalik
+    const jarak=([x,y])=>Math.min(Math.hypot(x,bawah-y),1.5*Math.hypot(kanan-x,y),2*Math.hypot(x,y),2*Math.hypot(kanan-x,bawah-y));
+    jendela.sort((a,b)=>jarak(a)-jarak(b));
+    for(const[x,y]of jendela){const t=coba(kanvasDari(src,x,y,Math.min(sisi,W-x),Math.min(sisi,H-y),hanyaPojok?320:420,true));if(t){if(t.d&&t.d.peran==='d')return t.d;temuan.push(t.d);}if(++n%10===0)await new Promise(r=>setTimeout(r));}
+    return null;
+  };
+  let d=await telusuri(P*.095,P*.024,true)||await telusuri(P*.12,P*.03,true);if(d)return{d,ada:true};
+  // Foto yang hanya memuat QR tanda tangan tidak perlu ditelusuri lebih jauh
+  if(temuan.some(Boolean))return{d:pilihQr(temuan),ada:true};
+  d=await telusuri(P*.14,P*.07)||await telusuri(P*.22,P*.11);if(d)return{d,ada:true};
+  return{d:pilihQr(temuan),ada:temuan.length>0};
+}
+async function cariQrPdf(file){
+  const u=new Uint8Array(await file.arrayBuffer()),gambar=[];
+  // PDF surat dan hasil scan umumnya menyimpan gambar sebagai JPEG
+  for(let i=0;i<u.length-3;i++){
+    if(u[i]!==0xFF||u[i+1]!==0xD8||u[i+2]!==0xFF)continue;
+    let j=i+2;while(j<u.length-1&&!(u[j]===0xFF&&u[j+1]===0xD9&&String.fromCharCode(...u.subarray(j+2,j+12)).includes('endstream')))j++;
+    if(j>=u.length-1)break;
+    gambar.push(new Blob([u.subarray(i,j+2)],{type:'image/jpeg'}));i=j+1;
+  }
+  if(!gambar.length)return{d:null,ada:false,tanpaGambar:true};
+  let ada=false;const temuan=[];
+  for(const g of gambar){let im;try{im=await muatGambar(urlBerkas(g));}catch(e){continue;}const r=await cariQrSurat(im);ada=ada||r.ada;if(r.d){if(r.d.peran==='d')return{d:r.d,ada:true};temuan.push(r.d);}}
+  return{d:temuan[0]||null,ada};
+}
+function tampilHasilQr(hasil){tampilHasilData(hasil?bacaQrTtd(hasil.binaryData):null,!!hasil);}
+function tampilHasilData(d,ada,pesan){const b=$('#qr-hasil');if(!b)return;b.innerHTML=hasilQr(d,ada,pesan);b.hidden=false;b.closest('.scan').classList.add('ada-hasil');if(navigator.vibrate)navigator.vibrate(60);}
 const vVerif=()=>`<div class="scan"><div class="scan-view" id="scan-view">
   <video id="qr-video" playsinline muted hidden></video>
-  <div class="scan-petunjuk">Arahkan kamera ke QR surat pernyataan</div>
+  <div class="scan-petunjuk">Arahkan ke QR di pojok kiri bawah</div>
   <div class="scan-bingkai"><i></i><i></i><i></i><i></i><span class="scan-garis"></span></div>
-  <div class="scan-kosong">${ic('qr')}<b>Kamera belum aktif</b><span>Buka kamera atau pilih foto QR</span></div>
-  <div class="scan-aksi"><button type="button" class="btn scan-tbl" id="qr-mulai" data-act="qrKamera">${ic('eye')} Buka kamera</button><label class="btn scan-tbl">${ic('image')} Pilih foto QR<input type="file" accept="image/*" data-change="qrFoto" hidden></label></div>
+  <div class="scan-kosong">${ic('qr')}<b>Kamera belum aktif</b><span>Buka kamera, atau upload foto/PDF surat</span></div>
+  <div class="scan-aksi"><button type="button" class="btn scan-tbl" id="qr-mulai" data-act="qrKamera">${ic('eye')} Buka kamera</button><label class="btn scan-tbl">${ic('image')} Upload foto/PDF<input type="file" accept="image/*,application/pdf,.pdf" data-change="qrFoto" hidden></label></div>
   </div><div id="qr-hasil" aria-live="polite" hidden></div></div>`;
 function renderVerifPublik(){
   const S=DB.settings;document.title='Scan QR - '+S.appName;
@@ -2061,7 +2112,7 @@ function vDetail(s){
   const stKonf=s.jemput?'done':'now';
   const reqT=s.jemput==='tidak';
   const steps=[
-    step(s.nomor?'done':'now',1,'Surat tugas',`${s.nomor?'Nomor '+esc(s.nomor)+'. ':'Unduh, sahkan di Srikandi, lalu catat nomornya. '}${s.fileST?'Berkas sudah diunggah.':''}<div class="acts"><button class="btn sm" data-act="previewST" data-id="${s.id}">${ic('eye')} Pratinjau</button><button class="btn sm pri" data-act="dlST" data-id="${s.id}">${ic('down')} Unduh DOCX</button>${can('st.create')?`<button class="btn sm" data-act="catatST" data-id="${s.id}">${ic('upload')} Catat hasil Srikandi</button>`:''}${s.fileST?`<button class="btn sm" data-act="openFile" data-file="${s.fileST}">Lihat berkas</button>`:''}</div>`),
+    step(s.nomor?'done':'now',1,'Surat tugas',`${s.nomor?'Nomor '+esc(s.nomor)+'. ':'Unduh, sahkan di Srikandi, lalu catat nomornya. '}${s.fileST?'Berkas sudah diunggah.':''}<div class="acts"><button class="btn sm" data-act="previewST" data-id="${s.id}">${ic('eye')} Pratinjau</button><button class="btn sm pri" data-act="dlST" data-id="${s.id}">${ic('down')} Unduh DOCX</button>${can('st.create')?`<button class="btn sm" data-act="catatST" data-id="${s.id}">${ic('upload')} Unggah hasil TTE Srikandi</button>`:''}${s.fileST?`<button class="btn sm" data-act="openFile" data-file="${s.fileST}">Lihat berkas</button>`:''}</div>`),
     step(stKonf,2,'Notifikasi ke agen & konfirmasi transportasi',s.jemput?`<div class="alert ${s.jemput==='ya'?'ok':'info'} mt2">${ic('check')}<span><b>${jemputTeks(s)}.</b> ${s.jemput==='ya'?'Tidak ada tagihan (Rp 0).':'Surat tagihan diperlukan.'}${jwbMeta(s)?`<br>${jwbMeta(s)}`:''}</span></div>${s.jemput==='ya'?tombolPernyataan(s,true)+daftarTtd(s):''}${can('st.create')&&!t?`<div class="acts"><button class="btn sm ghost" data-act="catatJemput" data-id="${s.id}">Koreksi jawaban</button></div>`:''}`:`Belum dijawab agen.${s.notif&&s.notif[1]?` WA dibuka untuk dikirim ${waktu(s.notif[1])}.`:''}<div class="acts">${waBtn(1,s.notif&&s.notif[1]?'Kirim ulang WA':'Kirim WA ke agen')}${can('st.create')?`<button class="btn sm" data-act="catatJemput" data-id="${s.id}">Agen menjawab di luar aplikasi</button>`:''}</div>`),
     step(s.jemput==='ya'?'wait':t?'done':reqT?'now':'wait',3,'Tagihan',s.jemput==='ya'?'Tidak diperlukan.':!reqT?'Menunggu jawaban agen.':!t?`<div class="acts">${can('tagihan')?`<button class="btn sm pri" data-act="genTagihan" data-id="${s.id}">${ic('file')} Generate tagihan</button>`:'Akun Anda tidak berhak membuat tagihan.'}</div>`:
       `${esc(t.nomor)}, total Rp ${rp(totalTagihan(t))}.${s.notif&&s.notif[2]?` WA dibuka untuk dikirim ${waktu(s.notif[2])}.`:''}<div class="acts"><button class="btn sm" data-act="previewNominatif" data-id="${s.id}">${ic('eye')} Pratinjau nominatif</button><button class="btn sm pri" data-act="dlNominatif" data-id="${s.id}">${ic('down')} Unduh PDF</button>${can('tagihan')&&!b?`<button class="btn sm" data-act="genTagihan" data-id="${s.id}">${ic('edit')} Ubah</button>`:''}${waBtn(2,s.notif&&s.notif[2]?'Kirim ulang WA':'Kirim WA tagihan')}</div>`),
@@ -2376,7 +2427,7 @@ const actions={
   pickAgen(el){const a=agenOf(el.dataset.id),f=$('form[data-form=surat]');f.elements.agenId.value=a.id;$('#f_agenQ').value=a.nama;f.elements.agenSurat.value=a.nama;$('#agen-list').hidden=true;
     if(!waNumber(a.telp))toast('Nomor agen ini tidak dikenali sebagai WhatsApp','bad');},
   catatST(el){const s=findST(el.dataset.id);
-    openModal({title:'Catat hasil Srikandi',form:'catatST',body:`<input type="hidden" name="id" value="${s.id}"><div class="stack">${field('Nomor surat tugas','nomor',s.nomor,{req:1,ph:'Nomor dari Srikandi'})}${field('Surat tugas bertanda tangan (opsional)','file','',{type:'file',accept:'.pdf,.jpg,.jpeg,.png',hint:'PDF, JPG, atau PNG, maksimal 5 MB.'})}</div>`,foot:`<button type="button" class="btn" data-act="closeModal">Batal</button><button class="btn pri">Simpan</button>`});},
+    openModal({title:'Unggah hasil TTE Srikandi',form:'catatST',body:`<input type="hidden" name="id" value="${s.id}"><div class="stack">${field('Nomor surat tugas','nomor',s.nomor,{req:1,ph:'Nomor dari Srikandi'})}${field('Surat tugas bertanda tangan (opsional)','file','',{type:'file',accept:'.pdf,.jpg,.jpeg,.png',hint:'PDF, JPG, atau PNG, maksimal 5 MB.'})}</div>`,foot:`<button type="button" class="btn" data-act="closeModal">Batal</button><button class="btn pri">Simpan</button>`});},
   catatJemput(el){const s=findST(el.dataset.id);
     const koreksi=!!s.jemput;
     actions._jm=b=>{const v=b.dataset.v;setJemput(s,v,'petugas',`Jawaban agen ${koreksi?'dikoreksi':'dicatat'} petugas: ${v==='ya'?'transportasi disediakan':'transportasi tidak disediakan'}`);closeModal();refresh();};
@@ -2574,8 +2625,11 @@ async function imgSetting(e,maxW,apply){
   try{apply(await fileToImage(file,maxW));refresh();toast('Gambar disimpan');}catch(err){toast(err.message,'bad');}
 }
 const changes={
-  async qrFoto(e){const f=e.target.files[0];if(!f)return;e.target.value='';const url=urlBerkas(f);
-    try{const im=await muatGambar(url),skala=Math.min(1,1400/Math.max(im.naturalWidth,im.naturalHeight)),k=document.createElement('canvas');k.width=im.naturalWidth*skala;k.height=im.naturalHeight*skala;const x=k.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,k.width,k.height);x.drawImage(im,0,0,k.width,k.height);tampilHasilQr(jsqr()(x.getImageData(0,0,k.width,k.height).data,k.width,k.height));}catch(err){toast('Foto tidak bisa dibaca','bad');}},
+  async qrFoto(e){const f=e.target.files[0];if(!f)return;e.target.value='';hentikanKamera();const pt=$('.scan-petunjuk'),teks=pt.textContent;pt.textContent='Memeriksa surat...';await new Promise(r=>setTimeout(r,30));
+    try{const pdf=f.type==='application/pdf'||/\.pdf$/i.test(f.name),r=pdf?await cariQrPdf(f):await cariQrSurat(await muatGambar(urlBerkas(f)));
+      tampilHasilData(r.d,r.ada,r.tanpaGambar?'PDF ini tidak memuat gambar yang bisa dibaca. Gunakan foto suratnya.':'');
+    }catch(err){toast('Berkas tidak bisa dibaca','bad');}
+    pt.textContent=teks;},
   tagihanJarak(e){const j=e.target.checked?'jauh':'dekat',b=biayaJarak(j),f=e.target.form;
     f.querySelectorAll('[name^=tr_]').forEach(i=>{i.value=j==='jauh'?0:b.transport||'';i.readOnly=j==='jauh';});
     f.querySelectorAll('[name^=uh_]').forEach(i=>{i.value=b.uangHarian;});
