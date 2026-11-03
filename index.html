@@ -560,6 +560,52 @@ a.stat:hover{border-color:var(--line2)}
   @keyframes riak{from{clip-path:circle(0 at var(--rx) var(--ry));opacity:.26}to{clip-path:circle(150% at var(--rx) var(--ry));opacity:0}}
 }
 @media (prefers-reduced-motion:no-preference){.scrim{animation:f .12s ease-out}@keyframes f{from{opacity:0}}}
+@media (max-width:860px){
+  /* Pencarian dan filter */
+  .toolbar{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:10px}
+  .toolbar .search,.toolbar .seg{grid-column:1/-1;width:100%}
+  .toolbar select.inp{width:100%;min-width:0}
+  .toolbar>select.inp:last-child:nth-child(2){grid-column:1/-1}
+  /* Segmen sama lebar dan tidak terlipat */
+  .seg button{white-space:nowrap;font-size:13.5px}
+  /* Baris tabel menjadi kartu dua kolom */
+  .tbl tr{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 14px;padding:12px 14px;width:auto}
+  .tbl td,.tbl td:first-child,.tbl td:last-child{width:auto;min-width:0;padding:0}
+  .tbl td.hd-cell{grid-column:1/-1;padding-bottom:2px}
+  .tbl td.acts{grid-column:1/-1;padding-top:0}
+  .tbl td.acts.right{grid-column:2;justify-self:end;align-self:end}
+  .tbl td[data-l]{display:block}
+  .tbl td[data-l]::before{display:block;font-size:11.5px;line-height:1.5}
+  .tbl td[data-l]>*{display:block;text-align:left}
+  .tbl td.acts .wrap-row .btn{flex:1 1 auto}
+  #list.card{background:none;border:0;box-shadow:none;overflow:visible}
+  #list .tbl tbody{display:grid;gap:10px}
+  #list .tbl tr,#list .tbl tbody tr:last-child{background:var(--surface);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow)}
+  #list .sort-m{padding:0;border:0;margin-bottom:10px}
+  #list .pager{padding:12px 2px 0}
+  #list>.empty{background:var(--surface);border:1px solid var(--line);border-radius:16px}
+  /* Beranda */
+  .stats{gap:10px}
+  .stat{gap:8px;padding:12px 14px}.stat .ic{width:36px;height:36px;border-radius:11px}
+  .chart .plot{height:92px}
+  .pend-grid{gap:14px}
+  /* Alur surat */
+  .steps>li{padding-bottom:18px}
+  .steps .acts .btn{flex:1 1 auto}
+  /* Menu pengaturan seperti daftar pada aplikasi */
+  .hub{gap:0;background:var(--surface);border:1px solid var(--line);border-radius:16px;overflow:hidden;box-shadow:var(--shadow)}
+  .hub+.hub-h{margin-top:18px}
+  .hub a.card{border:0;border-radius:0;box-shadow:none;background:none;padding:12px 14px;gap:12px;position:relative}
+  .hub a.card+a.card{border-top:1px solid var(--line)}
+  .hub a.card::after{content:"";width:8px;height:8px;flex:none;border-top:2px solid var(--ink3);border-right:2px solid var(--ink3);transform:rotate(45deg);margin-right:3px}
+  .hub .ic{width:38px;height:38px}
+  /* Tombol form penuh */
+  .foot-act{display:grid}.foot-act .btn{width:100%}
+  /* Login */
+  .demo .wrap-row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  .demo .btn{width:100%;min-height:44px;white-space:normal;line-height:1.2;padding:6px 8px}
+}
+@media (max-width:380px){.seg button svg.i{display:none}}
 </style>
 </head>
 <body>
@@ -2029,8 +2075,8 @@ function renderSuratList(){
   const part=rows.slice((pg-1)*size,pg*size);
   $('#list').innerHTML=part.length?`${sortBar('surat')}<div class="tblwrap"><table class="tbl"><thead><tr>${thSort('surat','kapal')}<th ${ariaSort('surat','tglST','tanggal')}>${tombolSort('surat','tglST','Tgl Surat')}<span class="th-pisah">/</span>${tombolSort('surat','tanggal','Periksa')}</th>${thSort('surat','petugas')}${thSort('surat','status')}<th class="right">Aksi</th></tr></thead><tbody>${part.map(s=>`<tr class="click" data-go="surat/${s.id}">
     <td class="hd-cell"><span class="strong">${esc(namaKapal(s))}</span><div class="wrap-row mt2">${tagJenis(s)}<span class="tag">${s.petugas.length} orang</span>${ME.wilker?'':`<span class="tag info">${esc(wkNama(s.wilker))}</span>`}<span class="small muted">${esc(s.posisi)}</span></div>${s.nomor?`<div class="small muted mt2">${esc(s.nomor)}</div>`:''}</td>
-    <td class="small nowrap">${tglID(s.tglST)}<div class="muted">${tglID(s.tanggal)}</div></td>
-    <td class="small">${s.petugas.map(p=>esc((petugasOf(p)||{}).nama||'-')).join('<br>')}</td>
+    <td class="small nowrap" data-l="Surat / Periksa"><span>${tglID(s.tglST)}<div class="muted">${tglID(s.tanggal)}</div></span></td>
+    <td class="small" data-l="Petugas"><span>${s.petugas.map(p=>esc((petugasOf(p)||{}).nama||'-')).join('<br>')}</span></td>
     <td>${stageTag(s)}${s.jemput?`<div class="small muted mt2">${jemputTeks(s)}</div>`:''}</td>
     <td class="right acts nowrap"><span class="wrap-row" style="justify-content:flex-end"><button class="btn sm icon" data-act="previewST" data-id="${s.id}" aria-label="Pratinjau" title="Pratinjau">${ic('eye')}</button><button class="btn sm icon" data-act="dlST" data-id="${s.id}" aria-label="Unduh DOCX" title="Unduh DOCX">${ic('down')}</button></span></td>
   </tr>`).join('')}</tbody></table></div>${pagerHtml(rows.length,pg,size,'suratPage')}`:`<div class="empty">Belum ada surat tugas yang cocok.</div>`;
@@ -2261,8 +2307,8 @@ function renderAgenList(){
   const part=rows.slice((pg-1)*size,pg*size);
   $('#list').innerHTML=part.length?`${sortBar('agen')}<div class="tblwrap"><table class="tbl"><thead><tr>${thSort('agen','nama')}${thSort('agen','kontak')}${thSort('agen','kab')}${thSort('agen','aktif')}</tr></thead><tbody>${part.map(a=>`<tr class="click" data-act="agenForm" data-id="${a.id}">
     <td class="hd-cell"><span class="strong">${esc(a.nama)}</span><div class="small muted">${esc(a.siup)}</div></td>
-    <td class="small">${esc(a.email)}<div class="${waNumber(a.telp)?'muted':''}" ${waNumber(a.telp)?'':'style="color:var(--bad)"'}>${esc(a.telp)}${waNumber(a.telp)?'':' (bukan WA)'}</div></td>
-    <td class="small">${esc(a.kab)}</td><td>${a.aktif?'<span class="tag ok">Aktif</span>':'<span class="tag">Nonaktif</span>'}</td></tr>`).join('')}</tbody></table></div>${pagerHtml(rows.length,pg,size,'agenPage')}`:`<div class="empty">Tidak ada agen yang cocok.</div>`;
+    <td class="small" data-l="Kontak"><span style="overflow-wrap:anywhere">${esc(a.email)}<div class="${waNumber(a.telp)?'muted':''}" ${waNumber(a.telp)?'':'style="color:var(--bad)"'}>${esc(a.telp)}${waNumber(a.telp)?'':' (bukan WA)'}</div></span></td>
+    <td class="small" data-l="Wilayah"><span>${esc(a.kab)}</span></td><td data-l="Status"><span>${a.aktif?'<span class="tag ok">Aktif</span>':'<span class="tag">Nonaktif</span>'}</span></td></tr>`).join('')}</tbody></table></div>${pagerHtml(rows.length,pg,size,'agenPage')}`:`<div class="empty">Tidak ada agen yang cocok.</div>`;
 }
 function agenModal(a){
   const v=a||{nama:'',siup:'',email:'',telp:'',alamat:'',provinsi:'Kalimantan Utara',kab:'Kota Tarakan',ket:'',aktif:true};
