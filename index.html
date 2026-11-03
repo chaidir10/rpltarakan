@@ -2475,7 +2475,7 @@ const actions={
   pickAgen(el){const a=agenOf(el.dataset.id),f=$('form[data-form=surat]');f.elements.agenId.value=a.id;$('#f_agenQ').value=a.nama;f.elements.agenSurat.value=a.nama;$('#agen-list').hidden=true;
     if(!waNumber(a.telp))toast('Nomor agen ini tidak dikenali sebagai WhatsApp','bad');},
   catatST(el){const s=findST(el.dataset.id);
-    openModal({title:'Unggah hasil TTE Srikandi',form:'catatST',body:`<input type="hidden" name="id" value="${s.id}"><div class="stack">${field('Nomor surat tugas','nomor',s.nomor,{req:1,ph:'Nomor dari Srikandi'})}${field('Surat tugas bertanda tangan (opsional)','file','',{type:'file',accept:'.pdf,.jpg,.jpeg,.png',hint:'PDF, JPG, atau PNG, maksimal 5 MB.'})}</div>`,foot:`<button type="button" class="btn" data-act="closeModal">Batal</button><button class="btn pri">Simpan</button>`});},
+    openModal({title:'Unggah hasil TTE Srikandi',form:'catatST',body:`<input type="hidden" name="id" value="${s.id}"><div class="stack">${field('Nomor surat tugas','nomor',s.nomor,{req:1,ph:'Nomor dari Srikandi'})}${field('Surat tugas bertanda tangan','file','',{type:'file',req:!s.fileST,accept:'.pdf,.jpg,.jpeg,.png',hint:s.fileST?'Sudah diunggah. Pilih berkas baru hanya bila ingin mengganti.':'PDF, JPG, atau PNG, maksimal 5 MB.'})}</div>`,foot:`<button type="button" class="btn" data-act="closeModal">Batal</button><button class="btn pri">Simpan</button>`});},
   catatJemput(el){const s=findST(el.dataset.id);
     const koreksi=!!s.jemput;
     actions._jm=b=>{const v=b.dataset.v;setJemput(s,v,'petugas',`Jawaban agen ${koreksi?'dikoreksi':'dicatat'} petugas: ${v==='ya'?'transportasi disediakan':'transportasi tidak disediakan'}`);closeModal();refresh();};
@@ -2545,7 +2545,7 @@ const forms={
   async catatST(fd){
     const s=findST(fd.get('id')),n=String(fd.get('nomor')).trim(),file=fd.get('file');
     if(!n)return toast('Nomor surat wajib diisi','bad');
-    if(file&&file.size){if(!checkUpload(file,'Berkas'))return;if(s.fileST)await store.del('files',s.fileST);s.fileST=await saveFile(file);}
+    if(!s.fileST||(file&&file.size)){if(!checkUpload(file,'Surat tugas bertanda tangan'))return;if(s.fileST)await store.del('files',s.fileST);s.fileST=await saveFile(file);}
     s.nomor=n;addLog(s,`Nomor surat tugas dicatat: ${n}`);refresh();
   },
   tagihan(fd){
