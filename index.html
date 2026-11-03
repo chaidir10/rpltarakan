@@ -423,6 +423,7 @@ a.stat:hover{border-color:var(--line2)}
   .modal>.mf:has(.bukti-unduh) .btn:last-child{flex:1}
   .bukti-unduh{margin-right:0}
   .bukti-tutup{display:none}
+  .seg-moda{width:100%}.seg-moda button{flex:1}
   .modal>.mb:has(.bukti-lay){padding-bottom:10px}
 }
 @media (max-width:860px) and (max-height:600px){
@@ -457,6 +458,11 @@ a.stat:hover{border-color:var(--line2)}
 @keyframes scanGaris{from{top:10%}to{top:88%}}
 @media (prefers-reduced-motion:no-preference){.scan-on .scan-garis{animation:scanGaris 2s ease-in-out infinite alternate}}
 @media (max-width:860px){.content:has(.scan){padding-bottom:12px}.scan{max-width:none}.scan-view{height:calc(100dvh - 186px - env(safe-area-inset-bottom));min-height:340px;max-height:none}}
+.biaya-kepala{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px}
+.seg-moda{flex:0 1 auto}.seg-moda button{white-space:nowrap}
+.bukti-klaim[hidden]{display:none}
+.moda-list{margin-top:6px;display:grid;gap:2px}
+.tautan-btn{background:none;border:0;padding:0;color:var(--brand-text);text-decoration:underline;cursor:pointer;font:inherit}
 .biaya-baris{border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:grid;gap:10px}
 @media (max-width:860px){
   .inv{grid-template-columns:minmax(0,1fr);gap:10px}
@@ -1141,7 +1147,7 @@ const addLog=(s,msg,oleh)=>{(s.log=s.log||[]).unshift({t:Date.now(),by:oleh||(ME
 const STAGE={konfirmasi:['Menunggu konfirmasi agen','warn'],jemput:['Dijemput Agen','info'],perlu:['Perlu tagihan','bad'],bayar:['Menunggu pembayaran','warn'],validasi:['Menunggu validasi','warn'],valid:['Pembayaran Valid','ok'],tolak:['Bukti bayar ditolak','bad']};
 function stage(s){
   if(!s.jemput)return 'konfirmasi';
-  if(s.jemput==='ya')return 'jemput';
+  if(tanpaTagihan(s))return 'jemput';
   if(!s.tagihan)return 'perlu';
   if(!s.bayar)return 'bayar';
   return{valid:'valid',ditolak:'tolak'}[s.bayar.status]||'validasi';
@@ -1150,9 +1156,13 @@ const stageTag=s=>{const k=stage(s),[l,c]=STAGE[k];return `<span class="tag ${c}
 const namaKapal=s=>`${s.kapal} (GT.${s.gt})`;
 const jarakST=s=>s.jarak==='jauh'?'jauh':'dekat';
 /* Lebih dari 4 mil: biaya luar kota masuk kolom Uang Harian dan transport lokal tidak berlaku */
-const biayaJarak=j=>j==='jauh'?{transport:0,uangHarian:DB.settings.tarifLuar||0}:{transport:DB.settings.tarif||0,uangHarian:0};
+const biayaJarak=j=>j==='jauh'?{transport:0,uangHarian:DB.settings.tarifLuar||0}:{transport:0,uangHarian:0};
+/* Kurang dari 4 mil dan dijemput agen: tanpa tagihan. 4 mil atau lebih: uang harian dan penginapan tetap ditagih, transport at cost Rp 0. */
+const tanpaTagihan=s=>s.jemput==='ya'&&jarakST(s)!=='jauh';
+const MODA={agen:'Disediakan agen',pribadi:'Kendaraan pribadi',online:'Transportasi online'};
+const PILIH_MODA=[['pribadi','Kendaraan pribadi'],['online','Transportasi online']];
 const pilihJarak=val=>`<div class="jb jb-seg jb-jarak"><span class="lbl">Jarak sandar kapal dari bibir pantai</span><div class="jb-isi"><div class="seg seg-jarak" role="group" aria-label="Jarak sandar kapal dari bibir pantai">${PILIH_JARAK.map(([k,l])=>`<button type="button" class="${val===k?'on':''}" data-act="setJarak" data-v="${k}" aria-pressed="${val===k}">${l}</button>`).join('')}</div><input type="hidden" id="f_jarak" name="jarak" value="${val==='jauh'?'jauh':'dekat'}"></div></div>`;
-const hintJarak=j=>j==='jauh'?`Rp ${rp(DB.settings.tarifLuar||0)} per orang masuk kolom Uang Harian. Transport Lokal tidak berlaku.`:'Biaya memakai Transport Lokal.';
+const hintJarak=(j,ya)=>j==='jauh'?`Uang harian Rp ${rp(DB.settings.tarifLuar||0)} per orang dan penginapan. Transport at cost Rp 0.`:ya?'Transportasi disediakan agen, tanpa biaya.':'Transport diklaim sesuai struk bensin atau bukti pemesanan transportasi online.';
 const biayaBaris=r=>(+r.transport||0)+(+r.penginapan||0)+(+r.uangHarian||0);
 const totalTagihan=t=>t?t.rincian.reduce((a,r)=>a+biayaBaris(r),0):0;
 const jumlahKol=(t,k)=>t?t.rincian.reduce((a,r)=>a+(+r[k]||0),0):0;
@@ -1851,6 +1861,27 @@ function renderVerifPublik(){
   kameraOtomatis();
 }
 const bolehPernyataan=s=>s&&s.jemput==='ya'&&(!ME||bolehLihat(s));
+const tombolBukti=r=>r.buktiId?` <button type="button" class="tautan-btn" data-act="openFile" data-file="${r.buktiId}">Lihat bukti</button>`:'';
+const daftarModa=t=>t.rincian.some(r=>r.moda)?`<div class="moda-list">${t.rincian.map(r=>`<div>${esc(r.nama)}: ${MODA[r.moda]||'-'}${tombolBukti(r)}</div>`).join('')}</div>`:'';
+/* Satu baris biaya per petugas: cara transportasi, nominal, dan bukti klaim */
+function barisTagihan(s,id,j,ya){
+  const u=petugasOf(id)||{},o=s.tagihan&&s.tagihan.rincian.find(r=>r.id===id)||null,moda=ya?'agen':(o&&o.moda&&o.moda!=='agen'?o.moda:'');
+  const tr=o?o.transport:(!ya&&j==='dekat'?'':0),pg=o?o.penginapan:0,uh=o?o.uangHarian:(j==='jauh'?DB.settings.tarifLuar||0:0);
+  return `<div class="biaya-baris" data-p="${id}"><div class="biaya-kepala"><div class="strong">${esc(u.nama||'')}<div class="small muted" style="font-weight:400">${esc(u.pangkat||'')}${u.nip?' | NIP '+esc(u.nip):''}</div></div>
+    ${ya?`<span class="tag ok">${ic('mobil')} Disediakan agen</span><input type="hidden" name="moda_${id}" value="agen">`:`<div class="seg seg-moda" role="group" aria-label="Cara transportasi ${esc(u.nama||'')}">${PILIH_MODA.map(([k,l])=>`<button type="button" class="${moda===k?'on':''}" data-act="setModa" data-v="${k}" aria-pressed="${moda===k}">${l}</button>`).join('')}</div><input type="hidden" name="moda_${id}" value="${moda}">`}</div>
+    <div class="grid3">${field('Transport','tr_'+id,tr,{type:'number',min:0,mode:'numeric'})}${field('Penginapan','pg_'+id,pg,{type:'number',min:0,mode:'numeric'})}${field('Uang Harian','uh_'+id,uh,{type:'number',min:0,mode:'numeric'})}</div>
+    <div class="field bukti-klaim" hidden><label class="req" for="f_bk_${id}">Struk pembelian bensin</label><input class="inp" type="file" id="f_bk_${id}" name="bk_${id}" accept="image/*,.pdf">${o&&o.buktiId?`<span class="hint">Sudah diunggah.${tombolBukti(o)} Pilih berkas baru hanya bila ingin mengganti.</span>`:'<span class="hint">Foto atau PDF, maksimal 5 MB.</span>'}</div></div>`;
+}
+/* Menyesuaikan baris biaya dengan jarak dan cara transportasi. ubah=true bila jarak baru diganti. */
+function aturBarisTagihan(f,ubah){
+  if(!f)return;const j=f.querySelector('#f_jarak').value==='jauh'?'jauh':'dekat',luar=DB.settings.tarifLuar||0,ya=!f.querySelector('.seg-moda');
+  f.querySelectorAll('.biaya-baris').forEach(b=>{const id=b.dataset.p,moda=b.querySelector(`[name="moda_${id}"]`).value,klaim=!ya&&j==='dekat';
+    const tr=b.querySelector(`[name="tr_${id}"]`),uh=b.querySelector(`[name="uh_${id}"]`),bk=b.querySelector('.bukti-klaim');
+    tr.readOnly=!klaim;if(!klaim)tr.value=0;else if(ubah&&tr.value==='0')tr.value='';
+    if(ubah)uh.value=j==='jauh'?luar:0;
+    bk.hidden=!(klaim&&moda);bk.querySelector('label').textContent=moda==='online'?'Bukti pemesanan transportasi online':'Struk pembelian bensin';});
+  const h=$('#jarak-hint');if(h)h.textContent=hintJarak(j,ya);
+}
 const tombolPernyataan=(s,pratinjau)=>`<div class="acts">${pratinjau?`<button class="btn sm" data-act="previewPernyataan" data-id="${s.id}">${ic("eye")} Pratinjau surat pernyataan</button>`:""}<button class="btn sm pri" data-act="dlPernyataan" data-id="${s.id}">${ic("down")} Unduh surat pernyataan</button></div>`;
 function unduhNominatif(s){
   const n=new Date(),st=`${n.getFullYear()}${pad2(n.getMonth()+1)}${pad2(n.getDate())}${pad2(n.getHours())}${pad2(n.getMinutes())}${pad2(n.getSeconds())}`;
@@ -2155,14 +2186,14 @@ function vDetail(s){
   const waBtn=(no,label)=>wa?`<a class="btn wa sm" href="https://wa.me/${wa}?text=${encodeURIComponent(waPesan(s,no))}" target="_blank" rel="noopener" data-act="logWa" data-id="${s.id}" data-no="${no}">${ic('send')} ${label}</a>`:`<span class="tag bad">Nomor WA agen tidak valid: ${esc(a.telp||'kosong')}</span>`;
   const step=(st,n,title,body)=>`<li class="${st}"><span class="dot">${st==='done'?ic('check'):n}</span><div class="t">${title}</div>${body?`<div class="small muted">${body}</div>`:''}</li>`;
   const stKonf=s.jemput?'done':'now';
-  const reqT=s.jemput==='tidak';
+  const reqT=!!s.jemput&&!tanpaTagihan(s);
   const steps=[
     step(s.nomor?'done':'now',1,'Surat tugas',`${s.nomor?'Nomor '+esc(s.nomor)+'. ':'Unduh, sahkan di Srikandi, lalu catat nomornya. '}${s.fileST?'Berkas sudah diunggah.':''}<div class="acts"><button class="btn sm" data-act="previewST" data-id="${s.id}">${ic('eye')} Pratinjau</button><button class="btn sm pri" data-act="dlST" data-id="${s.id}">${ic('down')} Unduh DOCX</button>${can('st.create')?`<button class="btn sm" data-act="catatST" data-id="${s.id}">${ic('upload')} Unggah hasil TTE Srikandi</button>`:''}${s.fileST?`<button class="btn sm" data-act="openFile" data-file="${s.fileST}">Lihat berkas</button>`:''}</div>`),
-    step(stKonf,2,'Notifikasi ke agen & konfirmasi transportasi',s.jemput?`<div class="alert ${s.jemput==='ya'?'ok':'info'} mt2">${ic('check')}<span><b>${jemputTeks(s)}.</b> ${s.jemput==='ya'?'Tidak ada tagihan (Rp 0).':'Surat tagihan diperlukan.'}${jwbMeta(s)?`<br>${jwbMeta(s)}`:''}</span></div>${s.jemput==='ya'?tombolPernyataan(s,true):''}${can('st.create')&&!t?`<div class="acts"><button class="btn sm ghost" data-act="catatJemput" data-id="${s.id}">Koreksi jawaban</button></div>`:''}`:`Belum dijawab agen.${s.notif&&s.notif[1]?` WA dibuka untuk dikirim ${waktu(s.notif[1])}.`:''}<div class="acts">${waBtn(1,s.notif&&s.notif[1]?'Kirim ulang WA':'Kirim WA ke agen')}${can('st.create')?`<button class="btn sm" data-act="catatJemput" data-id="${s.id}">Agen menjawab di luar aplikasi</button>`:''}</div>`),
-    step(s.jemput==='ya'?'wait':t?'done':reqT?'now':'wait',3,'Tagihan',s.jemput==='ya'?'Tidak diperlukan.':!reqT?'Menunggu jawaban agen.':!t?`<div class="acts">${can('tagihan')?`<button class="btn sm pri" data-act="genTagihan" data-id="${s.id}">${ic('file')} Generate tagihan</button>`:'Akun Anda tidak berhak membuat tagihan.'}</div>`:
-      `${esc(t.nomor)}, total Rp ${rp(totalTagihan(t))}.${s.notif&&s.notif[2]?` WA dibuka untuk dikirim ${waktu(s.notif[2])}.`:''}<div class="acts"><button class="btn sm" data-act="previewNominatif" data-id="${s.id}">${ic('eye')} Pratinjau nominatif</button><button class="btn sm pri" data-act="dlNominatif" data-id="${s.id}">${ic('down')} Unduh PDF</button>${can('tagihan')&&!b?`<button class="btn sm" data-act="genTagihan" data-id="${s.id}">${ic('edit')} Ubah</button>`:''}${waBtn(2,s.notif&&s.notif[2]?'Kirim ulang WA':'Kirim WA tagihan')}</div>`),
-    step(s.jemput==='ya'?'wait':b&&b.status!=='ditolak'?'done':t?'now':'wait',4,'Upload bukti bayar oleh agen',s.jemput==='ya'?'Tidak diperlukan.':b?`${esc(b.nama)}${b.bank?` (${esc(b.bank)}${b.norek?` ${esc(b.norek)}`:''})`:''}, transfer ${tglID(b.tgl)}${b.at?`, dikirim ${waktu(b.at)}`:''}.${b.status==='ditolak'?` Ditolak: ${esc(b.alasan)}`:''}<div class="mt2" style="max-width:300px"><button class="bukti-thumb" data-act="lihatBukti" data-id="${s.id}" data-thumb="${b.fileId}" aria-label="Lihat bukti transfer"></button></div><div class="acts"><button class="btn sm" data-act="lihatBukti" data-id="${s.id}">${ic('eye')} Lihat bukti transfer</button></div>`:lewatBatas(s)?'<span class="tag bad">Lewat batas pembayaran</span>':'Menunggu agen.'),
-    step(s.jemput==='ya'?'wait':k==='valid'?'done':k==='validasi'?'now':'wait',5,'Validasi pembayaran',s.jemput==='ya'?'Tidak diperlukan.':k==='valid'?`Divalidasi ${esc(b.validBy||'')} ${b.validAt?waktu(b.validAt):''}.`:k==='validasi'&&can('validasi')?`<div class="acts"><button class="btn sm pri" data-act="validasi" data-id="${s.id}">${ic('check')} Pembayaran valid</button><button class="btn sm danger" data-act="tolakBayar" data-id="${s.id}">Tolak</button></div>`:''),
+    step(stKonf,2,'Notifikasi ke agen & konfirmasi transportasi',s.jemput?`<div class="alert ${s.jemput==='ya'?'ok':'info'} mt2">${ic('check')}<span><b>${jemputTeks(s)}.</b> ${tanpaTagihan(s)?'Tidak ada tagihan (Rp 0).':s.jemput==='ya'?'Transport Rp 0. Uang harian dan penginapan tetap ditagihkan karena jarak 4 mil atau lebih.':'Surat tagihan diperlukan.'}${jwbMeta(s)?`<br>${jwbMeta(s)}`:''}</span></div>${s.jemput==='ya'?tombolPernyataan(s,true):''}${can('st.create')&&!t?`<div class="acts"><button class="btn sm ghost" data-act="catatJemput" data-id="${s.id}">Koreksi jawaban</button></div>`:''}`:`Belum dijawab agen.${s.notif&&s.notif[1]?` WA dibuka untuk dikirim ${waktu(s.notif[1])}.`:''}<div class="acts">${waBtn(1,s.notif&&s.notif[1]?'Kirim ulang WA':'Kirim WA ke agen')}${can('st.create')?`<button class="btn sm" data-act="catatJemput" data-id="${s.id}">Agen menjawab di luar aplikasi</button>`:''}</div>`),
+    step(tanpaTagihan(s)?'wait':t?'done':reqT?'now':'wait',3,'Tagihan',tanpaTagihan(s)?'Tidak diperlukan.':!reqT?'Menunggu jawaban agen.':!t?`<div class="acts">${can('tagihan')?`<button class="btn sm pri" data-act="genTagihan" data-id="${s.id}">${ic('file')} Generate tagihan</button>`:'Akun Anda tidak berhak membuat tagihan.'}</div>`:
+      `${esc(t.nomor)}, total Rp ${rp(totalTagihan(t))}.${daftarModa(t)}${s.notif&&s.notif[2]?` WA dibuka untuk dikirim ${waktu(s.notif[2])}.`:''}<div class="acts"><button class="btn sm" data-act="previewNominatif" data-id="${s.id}">${ic('eye')} Pratinjau nominatif</button><button class="btn sm pri" data-act="dlNominatif" data-id="${s.id}">${ic('down')} Unduh PDF</button>${can('tagihan')&&!b?`<button class="btn sm" data-act="genTagihan" data-id="${s.id}">${ic('edit')} Ubah</button>`:''}${waBtn(2,s.notif&&s.notif[2]?'Kirim ulang WA':'Kirim WA tagihan')}</div>`),
+    step(tanpaTagihan(s)?'wait':b&&b.status!=='ditolak'?'done':t?'now':'wait',4,'Upload bukti bayar oleh agen',tanpaTagihan(s)?'Tidak diperlukan.':b?`${esc(b.nama)}${b.bank?` (${esc(b.bank)}${b.norek?` ${esc(b.norek)}`:''})`:''}, transfer ${tglID(b.tgl)}${b.at?`, dikirim ${waktu(b.at)}`:''}.${b.status==='ditolak'?` Ditolak: ${esc(b.alasan)}`:''}<div class="mt2" style="max-width:300px"><button class="bukti-thumb" data-act="lihatBukti" data-id="${s.id}" data-thumb="${b.fileId}" aria-label="Lihat bukti transfer"></button></div><div class="acts"><button class="btn sm" data-act="lihatBukti" data-id="${s.id}">${ic('eye')} Lihat bukti transfer</button></div>`:lewatBatas(s)?'<span class="tag bad">Lewat batas pembayaran</span>':'Menunggu agen.'),
+    step(tanpaTagihan(s)?'wait':k==='valid'?'done':k==='validasi'?'now':'wait',5,'Validasi pembayaran',tanpaTagihan(s)?'Tidak diperlukan.':k==='valid'?`Divalidasi ${esc(b.validBy||'')} ${b.validAt?waktu(b.validAt):''}.`:k==='validasi'&&can('validasi')?`<div class="acts"><button class="btn sm pri" data-act="validasi" data-id="${s.id}">${ic('check')} Pembayaran valid</button><button class="btn sm danger" data-act="tolakBayar" data-id="${s.id}">Tolak</button></div>`:''),
   ].join('');
   const ptgs=s.petugas.map(p=>{const u=petugasOf(p)||{};return `<div>${esc(u.nama||'-')}<div class="small muted">${esc(u.jabatan||'')}</div></div>`;}).join('');
   return `<div class="wrap-row" style="margin-bottom:12px">${stageTag(s)}${tagJenis(s)}${lewatBatas(s)?'<span class="tag bad">Lewat batas bayar</span>':''}</div>
@@ -2243,7 +2274,7 @@ function vInvoice(s){
       <div><span class="inv-lbl">Tanggal tagihan</span><span class="small">${tglID(t.tanggal)}</span><span class="inv-lbl" style="margin-top:8px">Batas pembayaran</span><span class="small">${tglID(batasTgl(s))}, ${esc(S.batas)} setelah pemeriksaan</span></div>
     </section>
     <section class="inv-sec"><span class="inv-lbl">Hal</span><p class="small" style="margin-bottom:12px">Rincian Biaya Perjalanan Dinas Nominatif Pemeriksaan Kapal ${esc(s.kapal)}</p>
-      <table class="inv-tbl"><thead><tr><th class="no">No</th><th>Nama Petugas</th><th class="r">Transport</th><th class="r">Penginapan</th><th class="r">Uang Harian</th><th class="r">Biaya</th></tr></thead><tbody>${t.rincian.map((r,i)=>{const u=petugasOf(r.id)||{},nip=r.nip||u.nip,pk=r.pangkat||u.pangkat;return `<tr><td class="no">${i+1}</td><td class="nm"><span class="strong">${esc(r.nama)}</span>${nip?`<div class="small muted">NIP ${esc(nip)}</div>`:''}${pk?`<div class="small muted">${esc(pk)}</div>`:''}</td>${biaya(r.transport,'Transport Lokal')}${biaya(r.penginapan,'Penginapan')}${biaya(r.uangHarian,'Uang Harian')}<td class="r strong" data-l="Biaya">${rp(biayaBaris(r))}</td></tr>`;}).join('')}</tbody></table>
+      <table class="inv-tbl"><thead><tr><th class="no">No</th><th>Nama Petugas</th><th class="r">Transport</th><th class="r">Penginapan</th><th class="r">Uang Harian</th><th class="r">Biaya</th></tr></thead><tbody>${t.rincian.map((r,i)=>{const u=petugasOf(r.id)||{},nip=r.nip||u.nip,pk=r.pangkat||u.pangkat;return `<tr><td class="no">${i+1}</td><td class="nm"><span class="strong">${esc(r.nama)}</span>${nip?`<div class="small muted">NIP ${esc(nip)}</div>`:''}${pk?`<div class="small muted">${esc(pk)}</div>`:''}${r.moda?`<div class="small muted">${MODA[r.moda]}${tombolBukti(r)}</div>`:''}</td>${biaya(r.transport,'Transport Lokal')}${biaya(r.penginapan,'Penginapan')}${biaya(r.uangHarian,'Uang Harian')}<td class="r strong" data-l="Biaya">${rp(biayaBaris(r))}</td></tr>`;}).join('')}</tbody></table>
       <div class="inv-terbilang"><div class="grow" style="min-width:180px"><span class="inv-lbl">Terbilang</span><span class="small" style="font-style:italic">${esc(terbilang(tot))} Rupiah</span></div><div style="text-align:right"><span class="inv-lbl">Total tagihan</span><b class="strong mono" style="font-size:17px">Rp ${rp(tot)}</b></div></div>
     </section>
     <section class="inv-sec"><span class="inv-lbl">Dasar penagihan</span><p class="small muted" style="line-height:1.55">${esc(teksTagihan(s))}</p></section>
@@ -2254,10 +2285,10 @@ function vAgenKapal(s){
   const k=stage(s),t=s.tagihan;
   let aksi='';
   if(k==='konfirmasi')aksi=`<div class="card"><div class="hd"><h2>Formulir biaya layanan</h2></div><div class="bd stack"><p>Apakah agen menyediakan transportasi untuk <b class="strong">${s.petugas.length} petugas</b> pemeriksa kapal ini?</p>
-    <div class="grid2 pilih-trans"><button class="opt ya" data-act="agenJemput" data-id="${s.id}" data-v="ya"><span class="pt-ic">${ic('mobil')}</span><b>Disediakan agen</b><small>Agen menjemput dan mengantar petugas.</small><span class="tag ok">Tanpa tagihan (Rp 0)</span></button>
-    <button class="opt tidak" data-act="agenJemput" data-id="${s.id}" data-v="tidak"><span class="pt-ic">${ic('struk')}</span><b>Tidak disediakan</b><small>Biaya transportasi petugas ditagihkan lewat invoice.</small><span class="tag warn">Ada tagihan</span></button></div></div></div>`;
+    <div class="grid2 pilih-trans"><button class="opt ya" data-act="agenJemput" data-id="${s.id}" data-v="ya"><span class="pt-ic">${ic('mobil')}</span><b>Disediakan agen</b><small>Agen menjemput dan mengantar petugas.</small><span class="tag ok">${jarakST(s)==='jauh'?'Transport Rp 0':'Tanpa tagihan (Rp 0)'}</span></button>
+    <button class="opt tidak" data-act="agenJemput" data-id="${s.id}" data-v="tidak"><span class="pt-ic">${ic('struk')}</span><b>Tidak disediakan</b><small>${jarakST(s)==='jauh'?'Petugas memakai kendaraan sendiri, transport at cost Rp 0.':'Biaya transportasi petugas ditagihkan sesuai bukti klaim.'}</small><span class="tag warn">Ada tagihan</span></button></div>${jarakST(s)==='jauh'?`<div class="alert">${ic('alert')}<span>Jarak sandar kapal 4 mil atau lebih: uang harian Rp ${rp(DB.settings.tarifLuar||0)} per petugas dan penginapan tetap ditagihkan, apa pun pilihan transportasinya.</span></div>`:''}</div></div>`;
   else if(k==='jemput')aksi=`<div class="alert ok">${ic('check')}<span>Transportasi petugas disediakan agen. Tidak ada tagihan.</span></div><div class="card"><div class="hd"><h2>Surat Pernyataan</h2></div><div class="bd stack" style="gap:10px"><p class="small muted">Unduh surat pernyataan bahwa petugas dijemput dan difasilitasi transportasinya oleh agen, beserta tanda tangan QR agen dan petugas yang sudah terisi otomatis.</p>${tombolPernyataan(s)}</div></div>`;
-  else if(k==='perlu')aksi=`<div class="alert info">${ic('file')}<span>Tagihan sedang disiapkan petugas. Anda akan menerima notifikasi WhatsApp setelah terbit.</span></div>`;
+  else if(k==='perlu')aksi=`<div class="alert info">${ic('file')}<span>Tagihan sedang disiapkan petugas. Anda akan menerima notifikasi WhatsApp setelah terbit.</span></div>${s.jemput==='ya'?`<div class="card"><div class="hd"><h2>Surat Pernyataan</h2></div><div class="bd stack" style="gap:10px"><p class="small muted">Petugas dijemput dan difasilitasi transportasinya oleh agen.</p>${tombolPernyataan(s)}</div></div>`:''}`;
   if(!t)return `<div class="wrap-row" style="margin-bottom:12px">${stageTag(s)}</div><div class="stack">${aksi}
   <div class="card"><div class="hd"><h2>Informasi Kapal</h2></div><div class="bd"><dl class="kv"><dt>Kapal</dt><dd>${esc(namaKapal(s))}</dd><dt>Posisi</dt><dd>${esc(s.posisi)}</dd><dt>Tgl pemeriksaan</dt><dd>${tglID(s.tanggal)}</dd><dt>Jumlah petugas</dt><dd>${s.petugas.length} orang</dd><dt>Surat tugas</dt><dd>${esc(s.nomor||'Dalam proses')}</dd></dl></div></div></div>`;
   const b=s.bayar,I=vInvoice(s);
@@ -2275,7 +2306,8 @@ function vAgenKapal(s){
     <div class="alert ${k==='valid'?'ok':'warn'}">${ic('check')}<span>${k==='valid'?'Pembayaran sudah divalidasi. Terima kasih.':'Bukti transfer sudah diterima dan sedang divalidasi petugas.'}</span></div>
     <button class="bukti-thumb" data-act="openFile" data-file="${b.fileId}" data-thumb="${b.fileId}" aria-label="Buka bukti transfer"></button>
     <dl class="kv small">${baisBukti(b)}</dl></div></div>`:'';
-  return `<div class="inv"><div class="inv-aksi">${I.ringkas}${form}${terkirim}</div>${I.rincian}</div>`;
+  const kartuPernyataan=s.jemput==='ya'?`<div class="card"><div class="hd"><h2>Surat Pernyataan</h2></div><div class="bd stack" style="gap:10px"><p class="small muted">Petugas dijemput dan difasilitasi transportasinya oleh agen.</p>${tombolPernyataan(s)}</div></div>`:'';
+  return `<div class="inv"><div class="inv-aksi">${I.ringkas}${form}${terkirim}${kartuPernyataan}</div>${I.rincian}</div>`;
 }
 const isiDrop=()=>`<span class="drop-ic">${ic('upload')}</span><span class="grow"><b class="strong">Ambil foto atau pilih file</b><span class="small muted" style="display:block">JPG, PNG, WEBP, atau PDF, maks. 5 MB</span></span>`;
 
@@ -2395,7 +2427,7 @@ function vSetApp(){
   <div class="card"><div class="hd"><h2>Identitas aplikasi</h2></div><div class="bd grid2">${field('Nama aplikasi','appName',S.appName,{req:1})}${field('Keterangan','appSub',S.appSub)}${field('Nama satker pada notifikasi','satker',S.satker,{req:1,cls:'span2'})}
     <div class="field span2"><span class="lbl">Logo aplikasi</span><div class="imgbox"><img src="${appLogo()}" alt=""></div><div class="wrap-row mt2"><label class="btn sm">${ic('upload')} Unggah logo<input type="file" accept="image/*" data-change="appLogo" hidden></label>${S.appLogo?`<button type="button" class="btn sm" data-act="appLogoReset">Pakai bawaan</button>`:''}</div></div></div></div>
   <div class="card"><div class="hd"><h2>Rekening RPL penampungan</h2></div><div class="bd grid2">${field('Nama rekening','rekNama',R.nama,{cls:'span2',ph:'Sesuai rekening RPL BKK Tarakan'})}${field('Bank','rekBank',R.bank,{ph:'Nama bank'})}${field('Nomor rekening','rekNomor',R.nomor,{mode:'numeric'})}</div></div>
-  </div><div class="card"><div class="hd"><h2>Penagihan</h2></div><div class="bd grid2">${field('Tarif transport lokal per petugas (Rp)','tarif',S.tarif||'',{type:'number',min:0,hint:'Untuk jarak kurang dari 4 mil. Mengisi otomatis saat generate tagihan.'})}${field('Perjalanan dinas luar kota per petugas (Rp)','tarifLuar',S.tarifLuar||'',{type:'number',min:0,hint:'Untuk jarak 4 mil atau lebih. Masuk kolom Uang Harian.'})}${field('Batas pembayaran','batas',S.batas)}
+  </div><div class="card"><div class="hd"><h2>Penagihan</h2></div><div class="bd grid2">${field('Perjalanan dinas luar kota per petugas (Rp)','tarifLuar',S.tarifLuar||'',{type:'number',min:0,hint:'Untuk jarak 4 mil atau lebih. Masuk kolom Uang Harian.'})}${field('Batas pembayaran','batas',S.batas)}
   ${field('Teks surat tagihan','teksTagihan',S.teksTagihan,{type:'textarea',rows:9,cls:'span2',hint:'Penanda otomatis: {kapal}, {tanggal}, {nomor_st}.'})}
   ${field('Daftar posisi kapal','posisi',S.posisi.join('\n'),{type:'textarea',rows:3,cls:'span2',hint:'Satu posisi per baris.'})}
   ${field('Daftar bank','bank',(S.bank||BANK_AWAL).join('\n'),{type:'textarea',rows:5,cls:'span2',hint:`Pilihan bank saat agen mengirim bukti (${(S.bank||BANK_AWAL).length} bank). Satu bank per baris; delapan bank teratas tampil lebih dulu sebelum agen mengetik.`})}</div></div></div>
@@ -2441,7 +2473,7 @@ const actions={
     openModal({title:`Daftar Nominatif - ${s.kapal}`,wide:true,body:`<div class="bukti-view"><iframe src="${urlBerkas(pdfNominatif(s))}" title="Daftar nominatif"></iframe></div>`,foot:`<button class="btn" data-act="closeModal">Tutup</button><button class="btn pri" data-act="_previewDl">${ic('down')} Unduh PDF</button>`});},
   setJarak(el){const f=el.closest('form'),i=f.querySelector('#f_jarak'),v=el.dataset.v;i.value=v;
     el.parentElement.querySelectorAll('button').forEach(x=>{const on=x.dataset.v===v;x.classList.toggle('on',on);x.setAttribute('aria-pressed',on);});
-    if(f.dataset.form==='tagihan')changes.tagihanJarak({target:i});},
+    if(f.dataset.form==='tagihan')aturBarisTagihan(f,true);},
   qrUlang(){const h=$('#qr-hasil');h.hidden=true;h.innerHTML='';h.closest('.scan').classList.remove('ada-hasil');kameraOtomatis();},
   async qrKamera(el){if(kamera)return hentikanKamera();
     try{const stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}}),v=$('#qr-video');if(!v||kamera){stream.getTracks().forEach(t=>t.stop());return;}kamera={stream,aktif:true};labelKamera(true);v.srcObject=stream;await v.play();
@@ -2484,17 +2516,19 @@ const actions={
     confirmBox('Konfirmasi transportasi',v==='ya'?'Transportasi petugas disediakan oleh agen. Jawaban ini tidak dapat diubah sendiri setelah dikirim.':'Transportasi tidak disediakan, biaya akan ditagihkan. Jawaban ini tidak dapat diubah sendiri setelah dikirim.',()=>{setJemput(s,v,'agen',v==='ya'?'Agen menyediakan transportasi':'Agen tidak menyediakan transportasi',namaAgenST(s));refresh();},'Kirim jawaban');},
   genTagihan(el){const s=findST(el.dataset.id),R=DB.settings.rekening;
     if(!R.nomor||!R.nama||!R.bank)return toast('Rekening RPL belum lengkap. Admin perlu mengisinya di Pengaturan > Aplikasi.','bad');
-    const t=s.tagihan,j=jarakST(s),awal=biayaJarak(j);
-    const nilai=(id,k)=>{const o=t&&t.rincian.find(r=>r.id===id);return o?o[k]:k==='transport'?(j==='jauh'?0:awal.transport||''):k==='uangHarian'?awal.uangHarian:0;};
-    const wk=WILKER.find(w=>w.id===s.wilker)||{};
+    const t=s.tagihan,j=jarakST(s),ya=s.jemput==='ya',wk=WILKER.find(w=>w.id===s.wilker)||{};
     openModal({title:'Generate Tagihan',form:'tagihan',wide:true,body:`<input type="hidden" name="id" value="${s.id}"><div class="stack">
       <div class="grid3">${field('Nomor Tugas Pemeriksaan','nomorST',s.nomor,{req:1,ph:'Nomor surat tugas dari Srikandi',ro:!!s.nomor})}
       ${field('Tanggal tagihan','tanggal',t?t.tanggal:today(),{req:1,type:'date'})}${field('Tempat','tempat',t&&t.tempat?t.tempat:(wk.tempat||''),{req:1})}</div>
-      ${pilihJarak(j)}<p class="hint" id="jarak-hint" style="margin-top:-6px">${hintJarak(j)}</p>
+      ${pilihJarak(j)}<p class="hint" id="jarak-hint" style="margin-top:-6px">${hintJarak(j,ya)}</p>
       <div class="stack" style="gap:10px"><span class="lbl">Rincian biaya per petugas (Rp)</span>
-      ${s.petugas.map(id=>{const u=petugasOf(id)||{};return `<div class="biaya-baris"><div class="strong">${esc(u.nama||'')}<div class="small muted" style="font-weight:400">${esc(u.pangkat||'')}${u.nip?' | NIP '+esc(u.nip):''}</div></div><div class="grid3">${field('Transport Lokal','tr_'+id,nilai(id,'transport'),{req:1,type:'number',min:0,mode:'numeric',ro:j==='jauh'})}${field('Penginapan','pg_'+id,nilai(id,'penginapan'),{type:'number',min:0,mode:'numeric'})}${field('Uang Harian','uh_'+id,nilai(id,'uangHarian'),{type:'number',min:0,mode:'numeric'})}</div></div>`;}).join('')}</div>
+      ${s.petugas.map(id=>barisTagihan(s,id,j,ya)).join('')}</div>
       <p class="hint">Tagihan langsung terbit tanpa pengesahan. Setelah disimpan, kirim WA ke agen dan unduh daftar nominatif.</p></div>`,
-      foot:`<button type="button" class="btn" data-act="closeModal">Close</button><button class="btn pri">Generate</button>`});},
+      foot:`<button type="button" class="btn" data-act="closeModal">Close</button><button class="btn pri">Generate</button>`});
+    aturBarisTagihan($('form[data-form=tagihan]'),false);},
+  setModa(el){const b=el.closest('.biaya-baris'),v=el.dataset.v;b.querySelector(`[name="moda_${b.dataset.p}"]`).value=v;
+    el.parentElement.querySelectorAll('button').forEach(x=>{const on=x.dataset.v===v;x.classList.toggle('on',on);x.setAttribute('aria-pressed',on);});
+    aturBarisTagihan(el.closest('form'),false);},
   logWa(el){const s=findST(el.dataset.id);s.notif=s.notif||{};s.notif[el.dataset.no]=Date.now();addLog(s,`Notifikasi WhatsApp ke-${el.dataset.no} dibuka untuk dikirim`);save();setTimeout(route,200);return true;},
   validasi(el){const s=findST(el.dataset.id);confirmBox('Validasi pembayaran',`Pastikan dana Rp ${rp(totalTagihan(s.tagihan))} sudah masuk ke rekening RPL.`,()=>{s.bayar.status='valid';s.bayar.validBy=ME.nama;s.bayar.validAt=Date.now();addLog(s,'Pembayaran divalidasi');refresh();toast('Pembayaran valid');},'Pembayaran valid');},
   tolakBayar(el){const s=findST(el.dataset.id);openModal({title:'Tolak bukti bayar',form:'tolak',body:`<input type="hidden" name="id" value="${s.id}">${field('Alasan penolakan','alasan','',{req:1,type:'textarea',rows:3,hint:'Alasan ditampilkan kepada agen.'})}`,foot:`<button type="button" class="btn" data-act="closeModal">Batal</button><button class="btn danger">Tolak</button>`});},
@@ -2548,16 +2582,29 @@ const forms={
     if(!s.fileST||(file&&file.size)){if(!checkUpload(file,'Surat tugas bertanda tangan'))return;if(s.fileST)await store.del('files',s.fileST);s.fileST=await saveFile(file);}
     s.nomor=n;addLog(s,`Nomor surat tugas dicatat: ${n}`);refresh();
   },
-  tagihan(fd){
-    const s=findST(fd.get('id')),nomorST=String(fd.get('nomorST')||'').trim(),jarak=fd.get('jarak')==='jauh'?'jauh':'dekat';
+  async tagihan(fd){
+    const s=findST(fd.get('id')),nomorST=String(fd.get('nomorST')||'').trim(),jarak=fd.get('jarak')==='jauh'?'jauh':'dekat',ya=s.jemput==='ya';
     if(!nomorST)return toast('Nomor surat tugas dari Srikandi wajib diisi','bad');
-    const rincian=[];for(const id of s.petugas){const raw=jarak==='jauh'?'0':fd.get('tr_'+id),pg=+fd.get('pg_'+id)||0,uh=+fd.get('uh_'+id)||0;if(raw===''||raw==null||+raw<0||pg<0||uh<0)return toast('Biaya setiap petugas wajib diisi dan tidak boleh negatif','bad');const u=petugasOf(id)||{};rincian.push({id,nama:u.nama,nip:u.nip||'',pangkat:u.pangkat||'',transport:+raw,penginapan:pg,uangHarian:uh});}
+    const old=s.tagihan||{},rincian=[],unggah=[];
+    for(const id of s.petugas){
+      const u=petugasOf(id)||{},nm=u.nama||'',moda=ya?'agen':String(fd.get('moda_'+id)||'');
+      if(!moda)return toast(`Pilih cara transportasi untuk ${nm}`,'bad');
+      const klaim=!ya&&jarak==='dekat',tr=klaim?+fd.get('tr_'+id):0,pg=+fd.get('pg_'+id)||0,uh=+fd.get('uh_'+id)||0;
+      if(klaim&&!(tr>0))return toast(`Nominal klaim transport ${nm} wajib diisi`,'bad');
+      if(pg<0||uh<0)return toast('Biaya tidak boleh negatif','bad');
+      const lama=(old.rincian||[]).find(r=>r.id===id),file=fd.get('bk_'+id),buktiId=klaim&&lama&&lama.moda===moda?lama.buktiId:null;
+      if(klaim){if(file&&file.size){if(!checkUpload(file,`Bukti klaim ${nm}`))return;unggah.push([rincian.length,file]);}
+        else if(!buktiId)return toast(`${moda==='online'?'Bukti pemesanan':'Struk bensin'} ${nm} wajib diunggah`,'bad');}
+      rincian.push({id,nama:nm,nip:u.nip||'',pangkat:u.pangkat||'',moda,transport:tr,penginapan:pg,uangHarian:uh,...(buktiId?{buktiId}:{})});
+    }
     const tempat=String(fd.get('tempat')||'').trim();if(!tempat)return toast('Tempat wajib diisi','bad');
-    const old=s.tagihan||{};
+    for(const[i,file]of unggah)rincian[i].buktiId=await saveFile(file);
+    const dipakai=new Set(rincian.map(r=>r.buktiId).filter(Boolean));
+    for(const r of old.rincian||[])if(r.buktiId&&!dipakai.has(r.buktiId))await store.del('files',r.buktiId);
     s.nomor=nomorST;s.jarak=jarak;
     s.tagihan={tanggal:fd.get('tanggal')||today(),tempat:tempat.toUpperCase(),rincian,nomor:old.nomor||nomorInvoice()};
     addLog(s,`Tagihan ${old.nomor?'diubah':'diterbitkan'}: Rp ${rp(totalTagihan(s.tagihan))}`);
-    refresh();toast('Tagihan terbit. Kirim WA tagihan kepada agen.');
+    closeModal();refresh();toast('Tagihan terbit. Kirim WA tagihan kepada agen.');
   },
   async bukti(fd,f){
     const s=stDariTautan();if(!s)return;
@@ -2678,10 +2725,6 @@ const changes={
       tampilHasilData(r.d,r.ada,r.tanpaGambar?'PDF ini tidak memuat gambar yang bisa dibaca. Gunakan foto suratnya.':'');
     }catch(err){toast('Berkas tidak bisa dibaca','bad');}
     pt.textContent=teks;},
-  tagihanJarak(e){const j=e.target.value==='jauh'?'jauh':'dekat',b=biayaJarak(j),f=e.target.form;
-    f.querySelectorAll('[name^=tr_]').forEach(i=>{i.value=j==='jauh'?0:b.transport||'';i.readOnly=j==='jauh';});
-    f.querySelectorAll('[name^=uh_]').forEach(i=>{i.value=b.uangHarian;});
-    $('#jarak-hint').textContent=hintJarak(j);},
   sortKol(e){const t=e.target.dataset.t,k=e.target.value;if(k)sortPilih[t]={c:k,d:SORT_KOL[t][k][2]||1};else delete sortPilih[t];sortSimpan(t);},
   dashBulan(e){periodeDash().m=+e.target.value;rerender();},
   dashTahun(e){periodeDash().y=+e.target.value;rerender();},
