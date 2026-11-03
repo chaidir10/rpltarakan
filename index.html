@@ -231,6 +231,7 @@ a.stat:hover{border-color:var(--line2)}
   #jenis-grid .jenis-grup{align-items:start}
   #jenis-grid .lbl{padding-top:9px}
   .jb-lanjut,.jenis-dipilih{padding-left:162px}
+  .jenis-bd .jb.jb-seg{grid-template-columns:150px minmax(0,1fr);gap:12px;align-items:center}
   #orang-seg{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));width:100%}
   #orang-seg button{justify-content:center}
 }
@@ -239,8 +240,9 @@ a.stat:hover{border-color:var(--line2)}
 #jenis-grid .opt.on .cek{background:var(--brand);border-color:var(--brand);color:var(--brand-ink)}
 #jenis-grid .cek svg.i{width:12px;height:12px;stroke-width:3}
 .jenis-dipilih{margin:0}.jenis-dipilih b{font-weight:600;color:var(--ink2)}
-.cek-jarak{display:flex;align-items:center;gap:9px;min-height:38px;font-weight:550;cursor:pointer}
-.cek-jarak input{width:18px;height:18px;margin:0;flex:none;accent-color:var(--brand);cursor:pointer}
+.jb.jb-seg{display:grid;gap:6px;justify-content:stretch}
+.jb-seg .seg{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);width:100%}
+.jb-seg .seg button{justify-content:center;white-space:nowrap}
 @media (max-width:860px){
   #jenis-grid .opt{min-height:38px}
 }
@@ -1029,7 +1031,8 @@ const wkNama=id=>(WILKER.find(w=>w.id===id)||{}).nama||'';
 const akunWilker=w=>({id:'u_wk_'+w.id,nama:'Wilker '+w.nama,username:w.username,password:'user123',role:'user',wilker:w.id,aktif:true});
 /* Data lama di browser: tambah akun wilker, pegawai menjadi data petugas, surat lama masuk wilker Malundung */
 const TARIF_LUAR_AWAL=430000;
-const JARAK={dekat:'Sampai 4 mil (transport lokal)',jauh:'Lebih dari 4 mil (perjalanan dinas luar kota)'};
+const JARAK={dekat:'Kurang dari 4 mil (transport lokal)',jauh:'4 mil atau lebih (perjalanan dinas luar kota)'};
+const PILIH_JARAK=[['dekat','Kurang dari 4 mil'],['jauh','4 mil atau lebih']];
 const REKENING_AWAL={nama:'RPL 048 PS BKK UTK AKOMODASI PEMERINTAH',nomor:'2015856303',bank:'BNI'};
 function migrasi(d){
   const v=d.v||1;if(v>=10)return false;
@@ -1148,7 +1151,7 @@ const namaKapal=s=>`${s.kapal} (GT.${s.gt})`;
 const jarakST=s=>s.jarak==='jauh'?'jauh':'dekat';
 /* Lebih dari 4 mil: biaya luar kota masuk kolom Uang Harian dan transport lokal tidak berlaku */
 const biayaJarak=j=>j==='jauh'?{transport:0,uangHarian:DB.settings.tarifLuar||0}:{transport:DB.settings.tarif||0,uangHarian:0};
-const pilihJarak=(val,change='')=>`<label class="cek-jarak"><input type="checkbox" id="f_jarak" name="jarak" value="jauh" ${val==='jauh'?'checked':''} ${change}><span>Jarak lebih dari 4 mil</span></label>`;
+const pilihJarak=val=>`<div class="jb jb-seg jb-jarak"><span class="lbl">Jarak sandar kapal dari bibir pantai</span><div class="jb-isi"><div class="seg seg-jarak" role="group" aria-label="Jarak sandar kapal dari bibir pantai">${PILIH_JARAK.map(([k,l])=>`<button type="button" class="${val===k?'on':''}" data-act="setJarak" data-v="${k}" aria-pressed="${val===k}">${l}</button>`).join('')}</div><input type="hidden" id="f_jarak" name="jarak" value="${val==='jauh'?'jauh':'dekat'}"></div></div>`;
 const hintJarak=j=>j==='jauh'?`Rp ${rp(DB.settings.tarifLuar||0)} per orang masuk kolom Uang Harian. Transport Lokal tidak berlaku.`:'Biaya memakai Transport Lokal.';
 const biayaBaris=r=>(+r.transport||0)+(+r.penginapan||0)+(+r.uangHarian||0);
 const totalTagihan=t=>t?t.rincian.reduce((a,r)=>a+biayaBaris(r),0):0;
@@ -2094,9 +2097,9 @@ function vSuratForm(s){
   <div class="card"><div class="hd"><h2>Jenis pemeriksaan</h2><span class="small muted"><span id="jenis-count">${v.jenis.length?`${v.jenis.length} dipilih`:'Belum dipilih'}</span>, bisa lebih dari satu</span></div><div class="bd stack jenis-bd">
     ${ME.wilker?`<div class="jb"><span class="lbl">Wilayah kerja</span><div class="jb-isi"><span class="tag info">${esc(wkNama(ME.wilker))}</span></div></div>`:`<div class="jb jb-tumpuk"><label class="lbl req" for="f_wilker">Wilayah kerja</label><div class="jb-isi"><select class="inp" id="f_wilker" name="wilker"><option value="">Pilih wilayah kerja</option>${WILKER.map(w=>`<option value="${w.id}" ${v.wilker===w.id?'selected':''}>${esc(w.nama)}</option>`).join('')}</select></div></div>`}
     <div id="jenis-grid">${jenisButtons()}</div>
-    <div class="jb"><span class="lbl">Jumlah petugas</span><div class="jb-isi"><div class="seg" id="orang-seg">${orangButtons()}</div></div></div>
+    <div class="jb jb-seg"><span class="lbl">Jumlah petugas</span><div class="jb-isi"><div class="seg" id="orang-seg">${orangButtons()}</div></div></div>
     <p class="hint jb-lanjut" id="format-hint">${formatHint()}</p>
-    <div class="jb-lanjut">${pilihJarak(jarakST(v))}</div>
+    ${pilihJarak(jarakST(v))}
   </div></div>
   <div class="card"><div class="hd"><h2>Surat dari agen</h2></div><div class="bd grid2">
     <div class="field span2"><label class="req" for="f_agenQ">Agen Kapal</label><div class="combo"><input class="inp" id="f_agenQ" data-input="agenCombo" autocomplete="off" placeholder="Ketik nama agen, kota, atau email" value="${a?esc(a.nama):''}"><div class="combo-list" id="agen-list" hidden></div></div><input type="hidden" name="agenId" value="${v.agenId||''}"></div>
@@ -2396,7 +2399,7 @@ function vSetApp(){
   <div class="card"><div class="hd"><h2>Identitas aplikasi</h2></div><div class="bd grid2">${field('Nama aplikasi','appName',S.appName,{req:1})}${field('Keterangan','appSub',S.appSub)}${field('Nama satker pada notifikasi','satker',S.satker,{req:1,cls:'span2'})}
     <div class="field span2"><span class="lbl">Logo aplikasi</span><div class="imgbox"><img src="${appLogo()}" alt=""></div><div class="wrap-row mt2"><label class="btn sm">${ic('upload')} Unggah logo<input type="file" accept="image/*" data-change="appLogo" hidden></label>${S.appLogo?`<button type="button" class="btn sm" data-act="appLogoReset">Pakai bawaan</button>`:''}</div></div></div></div>
   <div class="card"><div class="hd"><h2>Rekening RPL penampungan</h2></div><div class="bd grid2">${field('Nama rekening','rekNama',R.nama,{cls:'span2',ph:'Sesuai rekening RPL BKK Tarakan'})}${field('Bank','rekBank',R.bank,{ph:'Nama bank'})}${field('Nomor rekening','rekNomor',R.nomor,{mode:'numeric'})}</div></div>
-  </div><div class="card"><div class="hd"><h2>Penagihan</h2></div><div class="bd grid2">${field('Tarif transport lokal per petugas (Rp)','tarif',S.tarif||'',{type:'number',min:0,hint:'Untuk jarak sampai 4 mil. Mengisi otomatis saat generate tagihan.'})}${field('Perjalanan dinas luar kota per petugas (Rp)','tarifLuar',S.tarifLuar||'',{type:'number',min:0,hint:'Untuk jarak lebih dari 4 mil. Masuk kolom Uang Harian.'})}${field('Batas pembayaran','batas',S.batas)}
+  </div><div class="card"><div class="hd"><h2>Penagihan</h2></div><div class="bd grid2">${field('Tarif transport lokal per petugas (Rp)','tarif',S.tarif||'',{type:'number',min:0,hint:'Untuk jarak kurang dari 4 mil. Mengisi otomatis saat generate tagihan.'})}${field('Perjalanan dinas luar kota per petugas (Rp)','tarifLuar',S.tarifLuar||'',{type:'number',min:0,hint:'Untuk jarak 4 mil atau lebih. Masuk kolom Uang Harian.'})}${field('Batas pembayaran','batas',S.batas)}
   ${field('Teks surat tagihan','teksTagihan',S.teksTagihan,{type:'textarea',rows:9,cls:'span2',hint:'Penanda otomatis: {kapal}, {tanggal}, {nomor_st}.'})}
   ${field('Daftar posisi kapal','posisi',S.posisi.join('\n'),{type:'textarea',rows:3,cls:'span2',hint:'Satu posisi per baris.'})}
   ${field('Daftar bank','bank',(S.bank||BANK_AWAL).join('\n'),{type:'textarea',rows:5,cls:'span2',hint:`Pilihan bank saat agen mengirim bukti (${(S.bank||BANK_AWAL).length} bank). Satu bank per baris; delapan bank teratas tampil lebih dulu sebelum agen mengetik.`})}</div></div></div>
@@ -2440,6 +2443,9 @@ const actions={
   previewNominatif(el){const s=findST(el.dataset.id);if(!s||!s.tagihan||!bolehLihat(s))return;
     actions._previewDl=()=>unduhNominatif(s);
     openModal({title:`Daftar Nominatif - ${s.kapal}`,wide:true,body:`<div class="bukti-view"><iframe src="${urlBerkas(pdfNominatif(s))}" title="Daftar nominatif"></iframe></div>`,foot:`<button class="btn" data-act="closeModal">Tutup</button><button class="btn pri" data-act="_previewDl">${ic('down')} Unduh PDF</button>`});},
+  setJarak(el){const f=el.closest('form'),i=f.querySelector('#f_jarak'),v=el.dataset.v;i.value=v;
+    el.parentElement.querySelectorAll('button').forEach(x=>{const on=x.dataset.v===v;x.classList.toggle('on',on);x.setAttribute('aria-pressed',on);});
+    if(f.dataset.form==='tagihan')changes.tagihanJarak({target:i});},
   qrUlang(){const h=$('#qr-hasil');h.hidden=true;h.innerHTML='';h.closest('.scan').classList.remove('ada-hasil');kameraOtomatis();},
   async qrKamera(el){if(kamera)return hentikanKamera();
     try{const stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}}),v=$('#qr-video');if(!v||kamera){stream.getTracks().forEach(t=>t.stop());return;}kamera={stream,aktif:true};labelKamera(true);v.srcObject=stream;await v.play();
@@ -2488,7 +2494,7 @@ const actions={
     openModal({title:'Generate Tagihan',form:'tagihan',wide:true,body:`<input type="hidden" name="id" value="${s.id}"><div class="stack">
       <div class="grid3">${field('Nomor Tugas Pemeriksaan','nomorST',s.nomor,{req:1,ph:'Nomor surat tugas dari Srikandi',ro:!!s.nomor})}
       ${field('Tanggal tagihan','tanggal',t?t.tanggal:today(),{req:1,type:'date'})}${field('Tempat','tempat',t&&t.tempat?t.tempat:(wk.tempat||''),{req:1})}</div>
-      ${pilihJarak(j,'data-change="tagihanJarak"')}<p class="hint" id="jarak-hint" style="margin-top:-6px">${hintJarak(j)}</p>
+      ${pilihJarak(j)}<p class="hint" id="jarak-hint" style="margin-top:-6px">${hintJarak(j)}</p>
       <div class="stack" style="gap:10px"><span class="lbl">Rincian biaya per petugas (Rp)</span>
       ${s.petugas.map(id=>{const u=petugasOf(id)||{};return `<div class="biaya-baris"><div class="strong">${esc(u.nama||'')}<div class="small muted" style="font-weight:400">${esc(u.pangkat||'')}${u.nip?' | NIP '+esc(u.nip):''}</div></div><div class="grid3">${field('Transport Lokal','tr_'+id,nilai(id,'transport'),{req:1,type:'number',min:0,mode:'numeric',ro:j==='jauh'})}${field('Penginapan','pg_'+id,nilai(id,'penginapan'),{type:'number',min:0,mode:'numeric'})}${field('Uang Harian','uh_'+id,nilai(id,'uangHarian'),{type:'number',min:0,mode:'numeric'})}</div></div>`;}).join('')}</div>
       <p class="hint">Tagihan langsung terbit tanpa pengesahan. Setelah disimpan, kirim WA ke agen dan unduh daftar nominatif.</p></div>`,
@@ -2676,7 +2682,7 @@ const changes={
       tampilHasilData(r.d,r.ada,r.tanpaGambar?'PDF ini tidak memuat gambar yang bisa dibaca. Gunakan foto suratnya.':'');
     }catch(err){toast('Berkas tidak bisa dibaca','bad');}
     pt.textContent=teks;},
-  tagihanJarak(e){const j=e.target.checked?'jauh':'dekat',b=biayaJarak(j),f=e.target.form;
+  tagihanJarak(e){const j=e.target.value==='jauh'?'jauh':'dekat',b=biayaJarak(j),f=e.target.form;
     f.querySelectorAll('[name^=tr_]').forEach(i=>{i.value=j==='jauh'?0:b.transport||'';i.readOnly=j==='jauh';});
     f.querySelectorAll('[name^=uh_]').forEach(i=>{i.value=b.uangHarian;});
     $('#jarak-hint').textContent=hintJarak(j);},
