@@ -1596,7 +1596,7 @@ async function pdfPernyataan(s){
   const tulis=(x,y,t,o={})=>{const sz=o.size||FS,w=lebarTeks(t,sz,o.bold),xx=o.align==='c'?x-w/2:o.align==='r'?x-w:x;halaman[halaman.length-1].push(`BT /${o.bold?"F2":"F1"} ${sz} Tf ${(o.tw||0).toFixed(3)} Tw ${xx.toFixed(2)} ${(PH-y).toFixed(2)} Td (${pe(t)}) Tj ET`);};
   const garis=(x1,y1,x2,y2)=>halaman[halaman.length-1].push(`.6 w ${x1.toFixed(2)} ${(PH-y1).toFixed(2)} m ${x2.toFixed(2)} ${(PH-y2).toFixed(2)} l S`);
   let y=50;
-  const cukup=h=>{if(y+h>PH-92){halaman.push([]);y=60;}};
+  const cukup=h=>{if(y+h>PH-76){halaman.push([]);y=60;}};
   const paragraf=(t,indent=36)=>{const lebar=R-L,ls=[];let b='';String(t).split(/\s+/).filter(Boolean).forEach(k=>{const w=lebar-(ls.length?0:indent),u=b?b+' '+k:k;if(lebarTeks(u,FS)<=w||!b)b=u;else{ls.push(b);b=k;}});if(b)ls.push(b);
     ls.forEach((l,i)=>{cukup(LH);const x=L+(i?0:indent),sp=l.split(' ').length-1,tw=i<ls.length-1&&sp?(R-x-lebarTeks(l,FS))/sp:0;tulis(x,y,l,{tw});y+=LH;});};
   const kv=(k,v)=>{const ls=bungkus(v||'-',FS,R-L-140);cukup(LH*ls.length);tulis(L+18,y,k);tulis(L+130,y,':');ls.forEach(l=>{tulis(L+140,y,l);y+=LH;});};
@@ -1614,7 +1614,7 @@ async function pdfPernyataan(s){
   barisTabel(['No','Nama Petugas','NIP','Pangkat/Gol.','Jabatan'],{bold:true});
   s.petugas.forEach((id,i)=>{const u=petugasOf(id)||{};barisTabel([String(i+1),u.nama,u.nip,u.pangkat,u.jabatan]);});y+=10;
   paragraf('Atas penyediaan transportasi tersebut, biaya transportasi petugas tidak ditagihkan melalui Rekening Pemerintah Lainnya (RPL).');y+=4;
-  const SISI=60,namaAgen=bungkus(s.agenSurat||a.nama||'',8.5,R-347);cukup(LH*2+10+Math.max(8+s.petugas.length*(SISI+3),LH*2+4+SISI+10*(namaAgen.length+1)+4));
+  const SISI=54,namaAgen=bungkus(s.agenSurat||a.nama||'',8.5,R-347);cukup(LH*2+10+Math.max(8+s.petugas.length*(SISI+3),LH*2+4+SISI+10*(namaAgen.length+1)+4));
   paragraf('Demikian surat pernyataan ini dibuat dengan sebenarnya untuk dipergunakan sebagaimana mestinya.');y+=10;
   // Tanda tangan QR: petugas berjejer ke bawah di kiri, agen di sebelah kanan
   const tempat=(wk.tempat||'').toLowerCase().replace(/(^|\s)\S/g,m=>m.toUpperCase()),gambarQr=[],XA=347;
@@ -1628,12 +1628,13 @@ async function pdfPernyataan(s){
   let ya=y+LH;tulis(XA,ya,'Yang membuat pernyataan,');ya+=6;
   await pasangQr(ttdData(s,'a'),XA,ya);ya+=SISI+10;
   namaAgen.forEach(l=>{tulis(XA,ya,l,{size:8.5});ya+=10;});tulis(XA,ya,JABATAN_AGEN,{size:8.5});
-  // QR keaslian dokumen di pojok kiri bawah setiap halaman
-  const kanDok=await kanvasQr(kodeQrTtd(ttdData(s,'d')),440,2);gambarQr.push({bytes:dataBytes(kanDok.toDataURL('image/jpeg',.95)),w:kanDok.width,h:kanDok.height});
-  const noDok=gambarQr.length,SD=58,atasDok=PH-20-SD;
-  halaman.forEach(h=>{h.push(`q ${SD} 0 0 ${SD} ${L} ${(PH-atasDok-SD).toFixed(2)} cm /Im${noDok} Do Q`);
-    h.push(`BT /F2 8.5 Tf 0 Tw ${L+SD+7} ${(PH-atasDok-22).toFixed(2)} Td (Scan untuk cek keaslian dokumen) Tj ET`);
-    h.push(`BT /F1 8 Tf 0 Tw ${L+SD+7} ${(PH-atasDok-33).toFixed(2)} Td (Gunakan menu Scan QR pada aplikasi RPL Tarakan.) Tj ET`);});
+  // QR keaslian sebagai catatan kaki setiap halaman
+  const kanDok=await kanvasQr(kodeQrTtd(ttdData(s,'d')),440,2,'Q');gambarQr.push({bytes:dataBytes(kanDok.toDataURL('image/jpeg',.95)),w:kanDok.width,h:kanDok.height});
+  const noDok=gambarQr.length,SD=46,atasDok=PH-16-SD,xt=(L+SD+7).toFixed(2);
+  halaman.forEach(h=>{h.push(`.5 G .5 w ${L} ${(PH-atasDok+6).toFixed(2)} m ${R} ${(PH-atasDok+6).toFixed(2)} l S 0 G`);
+    h.push(`q ${SD} 0 0 ${SD} ${L} ${(PH-atasDok-SD).toFixed(2)} cm /Im${noDok} Do Q`);
+    h.push(`BT /F2 7.5 Tf 0 Tw ${xt} ${(PH-atasDok-20).toFixed(2)} Td (Scan untuk cek keaslian dokumen) Tj ET`);
+    h.push(`BT /F1 7 Tf 0 Tw ${xt} ${(PH-atasDok-30).toFixed(2)} Td (Gunakan menu Scan QR pada aplikasi RPL Tarakan.) Tj ET`);});
   // Berkas PDF
   const objJpeg=g=>{const biner=[];for(let i=0;i<g.bytes.length;i+=8192)biner.push(String.fromCharCode.apply(null,g.bytes.subarray(i,i+8192)));return `<< /Type /XObject /Subtype /Image /Width ${g.w} /Height ${g.h} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${g.bytes.length} >>\nstream\n${biner.join('')}\nendstream`;};
   const font=b=>`<< /Type /Font /Subtype /Type1 /BaseFont /${b} /Encoding /WinAnsiEncoding >>`;
@@ -1670,7 +1671,7 @@ function aliranQr(nonce,n){const o=new Uint8Array(n);for(let i=0,c=0;i<n;c++){co
 /* Isi QR: versi, waktu tanda tangan, teks teracak, tanda keaslian. Pemindai biasa hanya melihat byte acak. */
 function kodeQrTtd(d){
   const potong=(t,n)=>String(t||'').replace(/\|/g,' ').slice(0,n);
-  const teks=[d.peran,String(d.tgl||'').replace(/-/g,'').slice(2),potong(d.nama,30),potong(d.kapal,20),potong(d.tambahan,20)].join('|');
+  const teks=[d.peran,String(d.tgl||'').replace(/-/g,'').slice(2),potong(d.nama,30),potong(d.kapal,20),potong(d.tambahan,d.peran==='d'?70:20)].join('|');
   const isi=new TextEncoder().encode(teks),nonce=new Uint8Array(4);new DataView(nonce.buffer).setUint32(0,d.at);
   const aliran=aliranQr(nonce,isi.length),acak=isi.map((b,i)=>b^aliran[i]),kepala=gabungByte([0xB7],nonce,acak);
   return gabungByte(kepala,sha256(gabungByte(KUNCI_QR,kepala)).slice(0,6));
@@ -1683,8 +1684,9 @@ function bacaQrTtd(b){
   return{peran,tgl:tgl?`20${tgl.slice(0,2)}-${tgl.slice(2,4)}-${tgl.slice(4,6)}`:'',nama,kapal,tambahan,at:new DataView(nonce.buffer).getUint32(0)*1000};
 }
 /* Penyandi QR byte mode dengan koreksi galat H, cukup kuat untuk logo di tengah */
-function matriksQr(data){
-  const T=[,[17,1,9,0,0],[28,1,16,0,0],[22,2,13,0,0],[16,4,9,0,0],[22,2,11,2,12],[28,4,15,0,0],[26,4,13,1,14],[26,4,14,2,15],[24,4,12,4,13],[28,6,15,2,16]];
+function matriksQr(data,mutu='H'){
+  const TQ=[,[13,1,13,0,0],[22,1,22,0,0],[18,2,17,0,0],[26,2,24,0,0],[18,2,15,2,16],[24,4,19,0,0],[18,2,14,4,15],[22,4,18,2,19],[20,4,16,4,17],[24,6,19,2,20]];
+  const TH=[,[17,1,9,0,0],[28,1,16,0,0],[22,2,13,0,0],[16,4,9,0,0],[22,2,11,2,12],[28,4,15,0,0],[26,4,13,1,14],[26,4,14,2,15],[24,4,12,4,13],[28,6,15,2,16]],T=mutu==='Q'?TQ:TH;
   const AL=[,[],[6,18],[6,22],[6,26],[6,30],[6,34],[6,22,38],[6,24,42],[6,26,46],[6,28,50]];
   let v=1;for(;v<=10;v++){const t=T[v];if(t[1]*t[2]+t[3]*t[4]>=data.length+(v<10?2:3))break;}
   if(v>10)throw new Error('Isi QR terlalu panjang');
@@ -1703,7 +1705,7 @@ function matriksQr(data){
   for(let i=0;i<n;i++){set(6,i,i%2===0);set(i,6,i%2===0);}
   for(const[cx,cy]of[[3,3],[n-4,3],[3,n-4]])for(let dy=-4;dy<=4;dy++)for(let dx=-4;dx<=4;dx++){const x=cx+dx,y=cy+dy,m=Math.max(Math.abs(dx),Math.abs(dy));if(x>=0&&x<n&&y>=0&&y<n)set(x,y,m!==2&&m!==4);}
   const al=AL[v];al.forEach((ax,i)=>al.forEach((ay,j)=>{if((i===0&&j===0)||(i===0&&j===al.length-1)||(i===al.length-1&&j===0))return;for(let dy=-2;dy<=2;dy++)for(let dx=-2;dx<=2;dx++)set(ax+dx,ay+dy,Math.max(Math.abs(dx),Math.abs(dy))!==1);}));
-  const format=mask=>{const d=(2<<3)|mask;let r=d;for(let i=0;i<10;i++)r=(r<<1)^((r>>>9)*0x537);const b=((d<<10)|r)^0x5412,k=i=>(b>>>i)&1;
+  const format=mask=>{const d=((mutu==='Q'?3:2)<<3)|mask;let r=d;for(let i=0;i<10;i++)r=(r<<1)^((r>>>9)*0x537);const b=((d<<10)|r)^0x5412,k=i=>(b>>>i)&1;
     for(let i=0;i<=5;i++)set(8,i,k(i));set(8,7,k(6));set(8,8,k(7));set(7,8,k(8));for(let i=9;i<15;i++)set(14-i,8,k(i));for(let i=0;i<8;i++)set(n-1-i,8,k(i));for(let i=8;i<15;i++)set(8,n-15+i,k(i));set(8,n-8,1);};
   format(0);
   if(v>=7){let r=v;for(let i=0;i<12;i++)r=(r<<1)^((r>>>11)*0x1F25);const b=(v<<12)|r;for(let i=0;i<18;i++){const k=(b>>>i)&1,a=n-11+i%3,c=Math.floor(i/3);set(a,c,k);set(c,a,k);}}
@@ -1718,8 +1720,8 @@ function matriksQr(data){
   return M;
 }
 /* QR hitam di atas putih dengan logo Kemenkes di tengah */
-async function kanvasQr(bytes,lebar=440,tepi=4){
-  const M=matriksQr(bytes),n=M.length,k=Math.max(2,Math.floor(lebar/(n+tepi*2))),c=document.createElement('canvas'),x=c.getContext('2d');
+async function kanvasQr(bytes,lebar=440,tepi=4,mutu='H'){
+  const M=matriksQr(bytes,mutu),n=M.length,k=Math.max(2,Math.floor(lebar/(n+tepi*2))),c=document.createElement('canvas'),x=c.getContext('2d');
   c.width=c.height=(n+tepi*2)*k;x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);x.fillStyle='#000';
   M.forEach((b,j)=>b.forEach((w,i)=>{if(w)x.fillRect((i+tepi)*k,(j+tepi)*k,k,k);}));
   const lg=await muatGambar(LOGO_APP),sisi=Math.round(n*.2)*k,alas=sisi+2*k,tengah=c.width/2;
@@ -1730,7 +1732,7 @@ const JABATAN_AGEN='Penanggung Jawab';
 const potongKata=(t,n)=>{t=String(t||'');return t.length<=n?t:t.slice(0,n).replace(/\s+\S*$/,'');};
 /* Tanda tangan terisi otomatis saat agen menyediakan transportasi, memakai waktu jawaban agen */
 const ttdData=(s,peran,id)=>{const at=Math.floor((s.jemputAt||s.dibuat||Date.now())/1000);
-  if(peran==='d')return{peran:'d',tgl:s.tanggal,nama:potongKata(s.agenSurat||(agenOf(s.agenId)||{}).nama,24),kapal:potongKata(s.kapal,16),tambahan:String(s.petugas.length),at};
+  if(peran==='d')return{peran:'d',tgl:s.tanggal,nama:potongKata(s.agenSurat||(agenOf(s.agenId)||{}).nama,24),kapal:potongKata(s.kapal,16),tambahan:s.petugas.map(id=>potongKata(String((petugasOf(id)||{}).nama||'').split(',')[0],21)).join(';'),at};
   if(peran==='a')return{peran:'a',tgl:s.tanggal,nama:s.agenSurat||(agenOf(s.agenId)||{}).nama,kapal:s.kapal,tambahan:JABATAN_AGEN,at};
   const u=petugasOf(id)||{};return{peran:'p',tgl:s.tanggal,nama:u.nama,kapal:s.kapal,tambahan:u.nip,at};};
 /* Pemeriksaan QR: hanya aplikasi ini yang bisa membaca isinya */
@@ -1741,7 +1743,7 @@ function hentikanKamera(){if(!kamera)return;kamera.aktif=false;kamera.stream&&ka
 /* Di ponsel kamera langsung terbuka seperti pemindai QRIS; bila gagal, pilihan foto tetap tersedia */
 const kameraOtomatis=()=>{if(innerWidth<=860)actions.qrKamera({diam:true});};
 const hasilQr=(d,ada=true,pesan)=>`<div class="scan-hasil ${d?'sah':'tolak'}"><span class="scan-tanda">${ic(d?'check':'alert')}</span><h2>${d?(d.peran==='d'?'Dokumen asli':'Tanda tangan sah'):ada?'Tidak dikenali':'QR tidak ditemukan'}</h2><p class="small muted">${d?(d.peran==='d'?'Surat pernyataan ini diterbitkan aplikasi.':'QR ini diterbitkan aplikasi.'):ada?'QR ini bukan QR yang diterbitkan aplikasi ini.':esc(pesan||'Pastikan QR di pojok kiri bawah terlihat jelas, lalu coba lagi.')}</p>
-  ${d&&d.peran==='d'?`<dl class="kv"><dt>Dokumen</dt><dd class="strong">Surat Pernyataan</dd><dt>Agen</dt><dd>${esc(d.nama)}</dd><dt>Petugas</dt><dd>${esc(d.tambahan)} orang</dd><dt>Kapal</dt><dd>${esc(d.kapal)}</dd><dt>Tgl pemeriksaan</dt><dd>${tglID(d.tgl)}</dd><dt>Diterbitkan</dt><dd>${waktu(d.at)}</dd></dl>`:d?`<dl class="kv"><dt>Penanda tangan</dt><dd class="strong">${esc(d.nama)}</dd><dt>Sebagai</dt><dd>${d.peran==='a'?'Agen':'Petugas'}</dd><dt>${d.peran==='a'?'Jabatan':'NIP'}</dt><dd>${esc(d.tambahan||'-')}</dd><dt>Kapal</dt><dd>${esc(d.kapal)}</dd><dt>Tgl pemeriksaan</dt><dd>${tglID(d.tgl)}</dd><dt>Ditandatangani</dt><dd>${waktu(d.at)}</dd></dl>`:''}
+  ${d&&d.peran==='d'?`<dl class="kv"><dt>Dokumen</dt><dd class="strong">Surat Pernyataan</dd><dt>Agen</dt><dd>${esc(d.nama)}</dd><dt>Petugas</dt><dd>${/^\d+$/.test(d.tambahan)?`${esc(d.tambahan)} orang`:d.tambahan.split(';').map(esc).join('<br>')}</dd><dt>Kapal</dt><dd>${esc(d.kapal)}</dd><dt>Tgl pemeriksaan</dt><dd>${tglID(d.tgl)}</dd><dt>Diterbitkan</dt><dd>${waktu(d.at)}</dd></dl>`:d?`<dl class="kv"><dt>Penanda tangan</dt><dd class="strong">${esc(d.nama)}</dd><dt>Sebagai</dt><dd>${d.peran==='a'?'Agen':'Petugas'}</dd><dt>${d.peran==='a'?'Jabatan':'NIP'}</dt><dd>${esc(d.tambahan||'-')}</dd><dt>Kapal</dt><dd>${esc(d.kapal)}</dd><dt>Tgl pemeriksaan</dt><dd>${tglID(d.tgl)}</dd><dt>Ditandatangani</dt><dd>${waktu(d.at)}</dd></dl>`:''}
   <button type="button" class="btn pri block" data-act="qrUlang">${ic('qr')} Scan lagi</button></div>`;
 /* Cari QR pada foto atau PDF surat. QR keaslian di pojok kiri bawah diutamakan, QR tanda tangan menjadi cadangan. */
 const kanvasDari=(src,x,y,w,h,maks,perbesar)=>{const sk=perbesar?maks/Math.max(w,h):Math.min(1,maks/Math.max(w,h)),c=document.createElement('canvas');c.width=Math.max(1,Math.round(w*sk));c.height=Math.max(1,Math.round(h*sk));const g=c.getContext('2d',{willReadFrequently:true});g.fillStyle='#fff';g.fillRect(0,0,c.width,c.height);g.drawImage(src,x,y,w,h,0,0,c.width,c.height);return c;};
