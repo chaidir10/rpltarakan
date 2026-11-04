@@ -1674,20 +1674,20 @@ async function pdfPernyataan(s){
   barisTabel(['No','Nama Petugas','NIP','Pangkat/Gol.','Jabatan'],{bold:true});
   s.petugas.forEach((id,i)=>{const u=petugasOf(id)||{};barisTabel([String(i+1),u.nama,u.nip,u.pangkat,u.jabatan]);});y+=10;
   paragraf('Atas penyediaan transportasi tersebut, biaya transportasi petugas tidak ditagihkan melalui Rekening Pemerintah Lainnya (RPL).');y+=4;
-  const SISI=54,namaAgen=bungkus(s.agenSurat||a.nama||'',8.5,R-347);cukup(LH*2+10+Math.max(8+s.petugas.length*(SISI+3),LH*2+4+SISI+10*(namaAgen.length+1)+4));
+  const SISI=54,namaAgen=bungkus(s.agenSurat||a.nama||'',8.5,300-L);cukup(LH*2+10+Math.max(LH+6+s.petugas.length*(SISI+3),LH*2+4+SISI+10*(namaAgen.length+1)+4));
   paragraf('Demikian surat pernyataan ini dibuat dengan sebenarnya untuk dipergunakan sebagaimana mestinya.');y+=10;
-  // Tanda tangan QR: petugas berjejer ke bawah di kiri, agen di sebelah kanan
-  const tempat=(wk.tempat||'').toLowerCase().replace(/(^|\s)\S/g,m=>m.toUpperCase()),gambarQr=[],XA=347;
+  // Tanda tangan QR: agen di kiri, petugas berjejer ke bawah di sebelah kanan
+  const tempat=(wk.tempat||'').toLowerCase().replace(/(^|\s)\S/g,m=>m.toUpperCase()),gambarQr=[],XP=310;
   const pasangQr=async(d,x,atas)=>{const kan=await kanvasQr(kodeQrTtd(d),440,2);gambarQr.push({bytes:dataBytes(kan.toDataURL('image/jpeg',.95)),w:kan.width,h:kan.height});halaman[halaman.length-1].push(`q ${SISI} 0 0 ${SISI} ${x.toFixed(2)} ${(PH-atas-SISI).toFixed(2)} cm /Im${gambarQr.length} Do Q`);};
-  tulis(L,y,'Petugas yang bertugas,');tulis(XA,y,`${tempat}, ${tgl2(s.tanggal)}`);
-  let yp=y+6;
-  for(const id of s.petugas){const u=petugasOf(id)||{},ls=bungkus(u.nama||'',8.5,XA-L-SISI-20),tinggi=(ls.length+(u.nip?1:0))*10;
-    await pasangQr(ttdData(s,'p',id),L,yp);
-    let yt=yp+SISI/2-tinggi/2+8;ls.forEach(l=>{tulis(L+SISI+6,yt,l,{size:8.5});yt+=10;});if(u.nip)tulis(L+SISI+6,yt,`NIP ${u.nip}`,{size:8.5});
+  tulis(L,y,`${tempat}, ${tgl2(s.tanggal)}`);
+  let ya=y+LH;tulis(L,ya,'Yang membuat pernyataan,');tulis(XP,ya,'Petugas yang bertugas,');
+  let yp=ya+6;ya+=6;
+  await pasangQr(ttdData(s,'a'),L,ya);ya+=SISI+10;
+  namaAgen.forEach(l=>{tulis(L,ya,l,{size:8.5});ya+=10;});tulis(L,ya,JABATAN_AGEN,{size:8.5});
+  for(const id of s.petugas){const u=petugasOf(id)||{},ls=bungkus(u.nama||'',8.5,R-XP-SISI-6),tinggi=(ls.length+(u.nip?1:0))*10;
+    await pasangQr(ttdData(s,'p',id),XP,yp);
+    let yt=yp+SISI/2-tinggi/2+8;ls.forEach(l=>{tulis(XP+SISI+6,yt,l,{size:8.5});yt+=10;});if(u.nip)tulis(XP+SISI+6,yt,`NIP ${u.nip}`,{size:8.5});
     yp+=SISI+3;}
-  let ya=y+LH;tulis(XA,ya,'Yang membuat pernyataan,');ya+=6;
-  await pasangQr(ttdData(s,'a'),XA,ya);ya+=SISI+10;
-  namaAgen.forEach(l=>{tulis(XA,ya,l,{size:8.5});ya+=10;});tulis(XA,ya,JABATAN_AGEN,{size:8.5});
   // QR keaslian sebagai catatan kaki setiap halaman
   const kanDok=await kanvasQr(kodeQrTtd(ttdData(s,'d')),440,2,'Q');gambarQr.push({bytes:dataBytes(kanDok.toDataURL('image/jpeg',.95)),w:kanDok.width,h:kanDok.height});
   const noDok=gambarQr.length,SD=46,atasDok=PH-16-SD,xt=(L+SD+7).toFixed(2);
