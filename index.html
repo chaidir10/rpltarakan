@@ -2527,7 +2527,7 @@ function vSetUsers(){
   const adm=isAdmin(),f=ui.users;
   meta('Akun untuk masuk ke aplikasi: admin, user wilayah kerja, dan petugas',`<button class="btn pri" data-act="userForm">${ic('plus')}<span>Tambah user</span></button>`);
   return `<div class="toolbar"><div class="search">${ic('search')}<input class="inp" placeholder="Cari nama atau username" value="${esc(f.q)}" data-input="usersQ" aria-label="Cari user"></div>
-  ${adm?`<div class="seg" role="group" aria-label="Peran">${[['','Semua'],['admin','Admin'],['user','Wilayah kerja'],['petugas','Petugas']].map(([k,l])=>`<button class="${f.role===k?'on':''}" data-act="userPeran" data-k="${k}" aria-pressed="${f.role===k}">${l}</button>`).join('')}</div>`:''}</div><div class="card" id="list"></div>`;
+  ${adm?`<div class="seg" role="group" aria-label="Peran">${[['','Semua'],['admin','Admin'],['user','Wilker'],['petugas','Petugas']].map(([k,l])=>`<button class="${f.role===k?'on':''}" data-act="userPeran" data-k="${k}" aria-pressed="${f.role===k}">${l}</button>`).join('')}</div>`:''}</div><div class="card" id="list"></div>`;
 }
 function renderUserList(){
   const f=ui.users,q=f.q.toLowerCase(),urut={admin:0,user:1,petugas:2};
