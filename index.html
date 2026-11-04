@@ -1083,6 +1083,39 @@ const WILKER=[
 const wkNama=id=>(WILKER.find(w=>w.id===id)||{}).nama||'';
 const akunWilker=w=>({id:'u_wk_'+w.id,nama:'Wilker '+w.nama,username:w.username,password:'user123',role:'user',wilker:w.id,aktif:true});
 /* Akun petugas: username NIP (atau nama depan bila tanpa NIP), sandi bawaan petugas123 */
+/* Daftar petugas bawaan: [nama, NIP, pangkat, jabatan, kunci id]. NIP/pangkat/jabatan yang kosong dilengkapi admin. */
+const PETUGAS_AWAL=[["Aryanti","","","","aryanti"],
+  ["Agung Setiyawan, SKM","198110182006041003","Penata - III/c","Epidemiolog Kesehatan Ahli Muda (JFT)","agung"],
+  ["Danan Catur Gumelar","","","","danan"],
+  ["Dedi Irwan","","","","dedi"],
+  ["Destry Arlina Putri, S.Kep, Ns","199212072025212036","IX","Administrator Kesehatan Ahli Pertama (JFT)","destry"],
+  ["Didi Prasetyo","","","","didi"],
+  ["Fianti Andua","","","","fianti"],
+  ["Haliq, SKM","198903162025211059","IX","Pembimbing Kesehatan Kerja Ahli Pertama (JFT)","haliq"],
+  ["Hermansyah","","","","hermansyah"],
+  ["Hidayatullah, SKM","198002202006041003","Penata Tk. I - III/d","Epidemiolog Kesehatan Ahli Muda (JFT)","hidayatullah"],
+  ["Ike Rachmawati","","","","ike"],
+  ["Indah Suryawati","","","","indah"],
+  ["Irayanti, SKM","198505092008122002","Penata - III/c","Entomolog Kesehatan Ahli Muda (JFT)","irayanti"],
+  ["Ivan Christopel Hasibuan","","","","ivan"],
+  ["Junadri Faizul","","","","junadri"],
+  ["dr. Kristianto Adiwiharyanto, M.K.M","198408202015031001","Penata Tk. I - III/d","Dokter Ahli Muda (JFT)","kristianto"],
+  ["Muhammad Husain","","","","muhammad"],
+  ["Novita","","","","novita"],
+  ["Nur Halidah Fatma Bahtiar","","","","nurhalidah"],
+  ["Nurusshiami Khairati","","","","nurusshiami"],
+  ["Raden Jaelani","","","","raden"],
+  ["Ramadani Sukaningtyas, SKM","199203162015032004","Penata Muda Tk. I - III/b","Entomolog Kesehatan Ahli Pertama (JFT)","ramadani"],
+  ["Raodatul Jannah","","","","raodatul"],
+  ["Salim Akhmad, SKM","196907211994021001","Penata Tk. I - III/d","Sanitarian Ahli Muda (JFT)","salim"],
+  ["Sulfikar, S.Kep,Ns","199210112025211053","X","Perawat Ahli Pertama (JFT)","sulfikar"],
+  ["Supriani","","","","supriani"],
+  ["Sur Dwi Astuty","","","","sur"],
+  ["Tona Bontor Melkisedek Sinaga","","","","tona"],
+  ["Wahyu Handoyo","","","","wahyu"],
+  ["Zulfitrahwati","","","","zulfitrahwati"]];
+const namaInti=n=>String(n||'').toLowerCase().replace(/^dr\.?\s*/,'').split(',')[0].replace(/\s+/g,' ').trim();
+function tambahPetugasAwal(d){PETUGAS_AWAL.forEach(([nama,nip,pangkat,jabatan,key])=>{if(d.petugas.some(p=>p.id==='u_'+key||namaInti(p.nama)===namaInti(nama)||(nip&&p.nip===nip)))return;d.petugas.push({id:'u_'+key,nama,nip,pangkat,jabatan,wilker:'',aktif:true});});}
 const PW_PETUGAS='petugas123';
 function akunPetugas(p,users){
   const dasar=(p.nip||String(p.nama).split(/[\s,]+/).filter(w=>w&&!/^dr\.?$/i.test(w))[0]||'petugas').toLowerCase().replace(/[^a-z0-9]/g,'')||'petugas';
@@ -1097,7 +1130,7 @@ const JARAK={dekat:'Kurang dari 4 mil (transport lokal)',jauh:'4 mil atau lebih 
 const PILIH_JARAK=[['dekat','Kurang dari 4 mil'],['jauh','4 mil atau lebih']];
 const REKENING_AWAL={nama:'RPL 048 PS BKK UTK AKOMODASI PEMERINTAH',nomor:'2015856303',bank:'BNI'};
 function migrasi(d){
-  const v=d.v||1;if(v>=11)return false;
+  const v=d.v||1;if(v>=12)return false;
   if(v<10){
   if(v<2){
     d.users.forEach(u=>{if(u.role==='user')u.role='pegawai';});
@@ -1127,9 +1160,10 @@ function migrasi(d){
   if(d.settings.tarifLuar===undefined)d.settings.tarifLuar=TARIF_LUAR_AWAL;
   d.st.forEach(s=>{if(!s.jarak)s.jarak='dekat';});
   }
-  // Versi 11: setiap petugas mendapat akun untuk membuat surat tugas sendiri
+  // Versi 12: daftar petugas BKK Tarakan; versi 11: setiap petugas mendapat akun
+  tambahPetugasAwal(d);
   lengkapiAkunPetugas(d);
-  d.v=11;return true;
+  d.v=12;return true;
 }
 async function bersihMigrasi(){for(const f of migrasi.berkas||[])await store.del('files',f);migrasi.berkas=[];}
 const BANK_AWAL='Bank Mandiri|Bank Rakyat Indonesia (BRI)|Bank Negara Indonesia (BNI)|Bank Central Asia (BCA)|Bank Syariah Indonesia (BSI)|Bank Tabungan Negara (BTN)|Bank Kaltimtara|Bank Kaltimtara Syariah|Bank Aceh Syariah|Bank Banten|Bank Bengkulu|Bank BJB|Bank BPD Bali|Bank BPD DIY|Bank BPD DIY Syariah|Bank BRK Syariah|Bank BSG|Bank Jakarta|Bank Jakarta Syariah|Bank Jambi|Bank Jambi Syariah|Bank Jateng|Bank Jateng Syariah|Bank Jatim|Bank Jatim Syariah|Bank Kalbar|Bank Kalbar Syariah|Bank Kalsel|Bank Kalsel Syariah|Bank Kalteng|Bank Lampung|Bank Maluku Malut|Bank Nagari|Bank Nagari Syariah|Bank NTB Syariah|Bank NTT|Bank Papua|Bank Sulselbar|Bank Sulselbar Syariah|Bank Sulteng|Bank Sultra|Bank Sumsel Babel|Bank Sumsel Babel Syariah|Bank Sumut|Bank Sumut Syariah|Bank Aladin Syariah|Bank Allo Indonesia|Bank Amar Indonesia|Bank ANZ Indonesia|Bank Artha Graha Internasional|Bank BCA Syariah|Bank BJB Syariah|Bank BNP Paribas Indonesia|Bank BTPN Syariah|Bank Bumi Arta|Bank Capital Indonesia|Bank CCB Indonesia|Bank CIMB Niaga|Bank CIMB Niaga Syariah|Bank CTBC Indonesia|Bank Danamon Indonesia|Bank Danamon Syariah|Bank DBS Indonesia|Bank Digital BCA (blu)|Bank Ganesha|Bank Hana Indonesia|Bank Hibank Indonesia|Bank HSBC Indonesia|Bank IBK Indonesia|Bank ICBC Indonesia|Bank Ina Perdana|Bank Index Selindo|Bank J Trust Indonesia|Bank Jago|Bank Jago Syariah|Bank Kasikorn Indonesia|Bank KB Indonesia|Bank KB Syariah|Bank Krom Indonesia|Bank Mandiri Taspen|Bank Mayapada Internasional|Bank Maybank Indonesia|Bank Maybank Syariah Indonesia|Bank Mega|Bank Mega Syariah|Bank Mestika Dharma|Bank Mizuho Indonesia|Bank MNC Internasional|Bank Muamalat Indonesia|Bank Multiarta Sentosa|Bank Nano Syariah|Bank Nationalnobu|Bank Neo Commerce|Bank OCBC Indonesia|Bank OCBC Syariah Indonesia|Bank of America|Bank of China|Bank of India Indonesia|Bank Oke Indonesia|Bank Panin|Bank Panin Dubai Syariah|Bank Permata|Bank Permata Syariah|Bank QNB Indonesia|Bank Raya Indonesia|Bank Resona Perdania|Bank Sahabat Sampoerna|Bank Saqu Indonesia|Bank SBI Indonesia|Bank Seabank Indonesia|Bank Shinhan Indonesia|Bank Sinarmas|Bank SMBC Indonesia|Bank Superbank Indonesia|Bank Syariah Nasional|Bank UOB Indonesia|Bank Victoria Internasional|Bank Woori Saudara|Citibank|Deutsche Bank|JPMorgan Chase Bank|MUFG Bank|Standard Chartered Bank'.split('|');
@@ -1145,18 +1179,11 @@ function seedState(){
   });
   const p=(nama,nip,pangkat,jabatan,key)=>({id:'u_'+key,nama,nip,pangkat,jabatan,wilker:'',aktif:true});
   const users=[{id:'u_admin',nama:'Admin Satker',username:'admin',password:'admin123',role:'admin',wilker:'',aktif:true},...WILKER.map(akunWilker)];
-  const petugas=[
-    p('Hidayatullah, SKM','198002202006041003','Penata Tk. I - III/d','Epidemiolog Kesehatan Ahli Muda (JFT)','hidayatullah'),
-    p('Irayanti, SKM','198505092008122002','Penata - III/c','Entomolog Kesehatan Ahli Muda (JFT)','irayanti'),
-    p('Destry Arlina Putri, S.Kep, Ns','199212072025212036','IX','Administrator Kesehatan Ahli Pertama (JFT)','destry'),
-    p('Ramadani Sukaningtyas, SKM','199203162015032004','Penata Muda Tk. I - III/b','Entomolog Kesehatan Ahli Pertama (JFT)','ramadani'),
-    p('Haliq, SKM','198903162025211059','IX','Pembimbing Kesehatan Kerja Ahli Pertama (JFT)','haliq'),
-    p('Salim Akhmad, SKM','196907211994021001','Penata Tk. I - III/d','Sanitarian Ahli Muda (JFT)','salim'),
-    p('dr. Kristianto Adiwiharyanto, M.K.M','198408202015031001','Penata Tk. I - III/d','Dokter Ahli Muda (JFT)','kristianto')];
+  const petugas=PETUGAS_AWAL.map(x=>p(...x));
   const ag=e=>agen.find(a=>a.email===e).id;
   const mk=(id,o)=>({id,token:tokenBaru(),wilker:'malundung',dibuat:Date.now(),dibuatOleh:'u_wk_malundung',penandatangan:'kepala',nomor:'',fileST:null,jemput:null,tagihan:null,bayar:null,notif:{},log:[{t:Date.now(),by:'Sistem',msg:'Contoh dari lampiran surat'}],...o});
   lengkapiAkunPetugas({users,petugas});
-  return{v:11,
+  return{v:12,
     settings:{appName:'RPL Kapal',appSub:'BKK Kelas I Tarakan',appLogo:null,
       satker:'BKK Kelas I Tarakan',
       rekening:{...REKENING_AWAL},bank:[...BANK_AWAL],tarif:0,tarifLuar:TARIF_LUAR_AWAL,batas:'3 x 24 jam',teksTagihan:TEKS_TAGIHAN,
@@ -2355,7 +2382,7 @@ function renderLogin(){
     <div class="demo"><div class="lbl">Akun contoh prototipe</div><div class="wrap-row mt2">
       <button type="button" class="btn sm" data-act="demoLogin" data-l="admin" data-p="admin123">Admin satker</button>
       ${WILKER.map(w=>`<button type="button" class="btn sm" data-act="demoLogin" data-l="${w.username}" data-p="user123">Wilker ${esc(w.nama)}</button>`).join('')}
-      ${(p=>p?`<button type="button" class="btn sm" data-act="demoLogin" data-l="${esc(p.username)}" data-p="${PW_PETUGAS}">Petugas ${esc(p.nama.split(',')[0])}</button>`:'')(DB.users.find(u=>u.role==='petugas'&&u.aktif&&u.password===PW_PETUGAS))}
+      ${(p=>p?`<button type="button" class="btn sm" data-act="demoLogin" data-l="${esc(p.username)}" data-p="${PW_PETUGAS}">Petugas ${esc(p.nama.split(',')[0])}</button>`:'')((l=>{const urut=DB.st.flatMap(s=>s.petugas);return l.filter(u=>urut.includes(u.petugasId)).sort((x,y)=>urut.indexOf(x.petugasId)-urut.indexOf(y.petugasId))[0]||l[0];})(DB.users.filter(u=>u.role==='petugas'&&u.aktif&&u.password===PW_PETUGAS)))}
     </div></div></form></main></div>`;
 }
 function doLogin(login,pw){
