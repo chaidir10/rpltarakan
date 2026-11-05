@@ -110,6 +110,32 @@ textarea.inp{min-height:90px;resize:vertical;line-height:1.5}
 input[type=file].inp{padding:6px}
 /* Kontrol kustom: pilihan, saran, tanggal, berkas */
 .kk{position:relative;display:block;min-width:0}
+.trk-bar{height:8px;border-radius:99px;background:var(--line);overflow:hidden;margin-top:10px}
+.trk-bar i{display:block;height:100%;background:var(--brand);border-radius:99px;transition:width .3s}
+.trk-bar.buruk i{background:var(--bad)}
+.trk-pc{margin-top:4px}
+.trk{list-style:none;margin:14px 0 0;padding:0;display:grid;gap:0}
+.trk li{display:flex;gap:12px;position:relative;padding-bottom:14px}
+.trk li:not(:last-child)::before{content:"";position:absolute;left:11px;top:24px;bottom:0;width:2px;background:var(--line)}
+.trk li.done:not(:last-child)::before{background:var(--brand)}
+.trk-dot{flex:none;width:24px;height:24px;border-radius:50%;border:2px solid var(--line2);background:var(--surface);display:grid;place-items:center;color:#fff}
+.trk-dot .i{width:14px;height:14px}
+.trk li.done .trk-dot{background:var(--brand);border-color:var(--brand);color:var(--brand-ink)}
+.trk li.now .trk-dot{border-color:var(--warn);box-shadow:0 0 0 4px var(--warn-soft)}
+.trk li.bad .trk-dot{background:var(--bad);border-color:var(--bad)}
+.trk li.skip{opacity:.55}
+.trk li.wait b{color:var(--ink3);font-weight:550}
+.agen-in{max-width:1040px;margin:0 auto}
+.agen-logo{height:36px;max-width:96px;object-fit:contain;background:#fff;border-radius:8px;padding:2px 4px}
+.agen-app{display:block;line-height:1.2;font-weight:650}
+.agen-nama{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.agen-isi{max-width:1104px;margin:0 auto}
+.agen-h1{font-size:20px;font-weight:650;letter-spacing:-.01em;margin:6px 0 14px}
+.agen-aksi{margin-bottom:var(--gap)}
+.agen-item{display:block;padding:16px;color:inherit;text-decoration:none}
+.agen-item:hover{border-color:var(--brand)}
+.spd-cap{padding:12px;border:1px dashed var(--line2);border-radius:var(--r2)}
+.spd-cap.ada{border-style:solid;border-color:var(--ok)}
 .sub-h{font-size:14px;font-weight:650;margin:0 0 10px;color:var(--ink2)}
 .sub-h.mt{margin-top:22px;padding-top:16px;border-top:1px solid var(--line)}
 .field-sw{align-self:end;min-height:40px}
@@ -1160,7 +1186,7 @@ const JARAK={dekat:'Kurang dari 4 mil (transport lokal)',jauh:'4 mil atau lebih 
 const PILIH_JARAK=[['dekat','Kurang dari 4 mil'],['jauh','4 mil atau lebih']];
 const REKENING_AWAL={nama:'RPL 048 PS BKK UTK AKOMODASI PEMERINTAH',nomor:'2015856303',bank:'BNI'};
 function migrasi(d){
-  const v=d.v||1;if(v>=14)return false;
+  const v=d.v||1;if(v>=15)return false;
   if(v<10){
   if(v<2){
     d.users.forEach(u=>{if(u.role==='user')u.role='pegawai';});
@@ -1200,7 +1226,10 @@ function migrasi(d){
   if(!d.settings.peran)d.settings.peran=peranAwal();
   // Versi 14: nama aplikasi resmi SAFIRA (hanya mengganti nama bawaan lama, bukan nama yang diubah admin)
   if(!d.settings.appName||/^(RPL (Kapal|Tarakan)|ASTRAVA)$/i.test(d.settings.appName))d.settings.appName=NAMA_APP;
-  d.v=14;return true;
+  // Versi 15: portal agen (akun agen, permohonan, SPD bercap)
+  if(!d.permohonan)d.permohonan=[];
+  if(!d.agen.some(a=>a.akun)){const a=d.agen.find(x=>x.email==='herina.puspita@gmail.com');if(a)a.akun={password:'agen123',status:'aktif',daftar:Date.now()};}
+  d.v=15;return true;
 }
 async function bersihMigrasi(){for(const f of migrasi.berkas||[])await store.del('files',f);migrasi.berkas=[];}
 const BANK_AWAL='Bank Mandiri|Bank Rakyat Indonesia (BRI)|Bank Negara Indonesia (BNI)|Bank Central Asia (BCA)|Bank Syariah Indonesia (BSI)|Bank Tabungan Negara (BTN)|Bank Kaltimtara|Bank Kaltimtara Syariah|Bank Aceh Syariah|Bank Banten|Bank Bengkulu|Bank BJB|Bank BPD Bali|Bank BPD DIY|Bank BPD DIY Syariah|Bank BRK Syariah|Bank BSG|Bank Jakarta|Bank Jakarta Syariah|Bank Jambi|Bank Jambi Syariah|Bank Jateng|Bank Jateng Syariah|Bank Jatim|Bank Jatim Syariah|Bank Kalbar|Bank Kalbar Syariah|Bank Kalsel|Bank Kalsel Syariah|Bank Kalteng|Bank Lampung|Bank Maluku Malut|Bank Nagari|Bank Nagari Syariah|Bank NTB Syariah|Bank NTT|Bank Papua|Bank Sulselbar|Bank Sulselbar Syariah|Bank Sulteng|Bank Sultra|Bank Sumsel Babel|Bank Sumsel Babel Syariah|Bank Sumut|Bank Sumut Syariah|Bank Aladin Syariah|Bank Allo Indonesia|Bank Amar Indonesia|Bank ANZ Indonesia|Bank Artha Graha Internasional|Bank BCA Syariah|Bank BJB Syariah|Bank BNP Paribas Indonesia|Bank BTPN Syariah|Bank Bumi Arta|Bank Capital Indonesia|Bank CCB Indonesia|Bank CIMB Niaga|Bank CIMB Niaga Syariah|Bank CTBC Indonesia|Bank Danamon Indonesia|Bank Danamon Syariah|Bank DBS Indonesia|Bank Digital BCA (blu)|Bank Ganesha|Bank Hana Indonesia|Bank Hibank Indonesia|Bank HSBC Indonesia|Bank IBK Indonesia|Bank ICBC Indonesia|Bank Ina Perdana|Bank Index Selindo|Bank J Trust Indonesia|Bank Jago|Bank Jago Syariah|Bank Kasikorn Indonesia|Bank KB Indonesia|Bank KB Syariah|Bank Krom Indonesia|Bank Mandiri Taspen|Bank Mayapada Internasional|Bank Maybank Indonesia|Bank Maybank Syariah Indonesia|Bank Mega|Bank Mega Syariah|Bank Mestika Dharma|Bank Mizuho Indonesia|Bank MNC Internasional|Bank Muamalat Indonesia|Bank Multiarta Sentosa|Bank Nano Syariah|Bank Nationalnobu|Bank Neo Commerce|Bank OCBC Indonesia|Bank OCBC Syariah Indonesia|Bank of America|Bank of China|Bank of India Indonesia|Bank Oke Indonesia|Bank Panin|Bank Panin Dubai Syariah|Bank Permata|Bank Permata Syariah|Bank QNB Indonesia|Bank Raya Indonesia|Bank Resona Perdania|Bank Sahabat Sampoerna|Bank Saqu Indonesia|Bank SBI Indonesia|Bank Seabank Indonesia|Bank Shinhan Indonesia|Bank Sinarmas|Bank SMBC Indonesia|Bank Superbank Indonesia|Bank Syariah Nasional|Bank UOB Indonesia|Bank Victoria Internasional|Bank Woori Saudara|Citibank|Deutsche Bank|JPMorgan Chase Bank|MUFG Bank|Standard Chartered Bank'.split('|');
@@ -1220,7 +1249,10 @@ function seedState(){
   const ag=e=>agen.find(a=>a.email===e).id;
   const mk=(id,o)=>({id,token:tokenBaru(),wilker:'malundung',dibuat:Date.now(),dibuatOleh:'u_admin',penandatangan:'kepala',nomor:'',fileST:null,jemput:null,tagihan:null,bayar:null,notif:{},log:[{t:Date.now(),by:'Sistem',msg:'Contoh dari lampiran surat'}],...o});
   lengkapiAkunPetugas({users,petugas});
-  return{v:14,
+  // Akun agen contoh dan satu permohonan baru untuk peragaan
+  const agDemo=agen.find(a=>a.email==='herina.puspita@gmail.com');if(agDemo)agDemo.akun={password:'agen123',status:'aktif',daftar:Date.now()};
+  const permohonan=agDemo?[{id:'pm1',agenId:agDemo.id,agenSurat:'PT. BNE SAMUDERA AGENSI',noSurat:'21 / XI /BNE-TRK/OPS/2026',tglSurat:'2026-11-03',hal:HAL_PERMOHONAN,kapal:'TB. SAMUDERA JAYA',gt:'210',posisi:'REDE TARAKAN',tanggal:'2026-11-08',wilker:'malundung',catatan:'',fileId:null,status:'baru',dibuat:Date.now()}]:[];
+  return{v:15,permohonan,
     settings:{appName:NAMA_APP,appSub:'BKK Kelas I Tarakan',appLogo:null,
       satker:'BKK Kelas I Tarakan',
       rekening:{...REKENING_AWAL},bank:[...BANK_AWAL],tarif:0,tarifLuar:TARIF_LUAR_AWAL,batas:'3 x 24 jam',teksTagihan:TEKS_TAGIHAN,
@@ -1243,7 +1275,8 @@ function seedState(){
 let ME=null;
 function loadSession(){
   try{const s=JSON.parse(sessionStorage.getItem('rpl.session')||'null');if(!s)return;
-    ME=s.type==='agen'?null:DB.users.find(u=>u.id===s.id);
+    if(s.type==='agen'){const a=agenOf(s.id);ME=agenAkunAktif(a)?{...a,_type:'agen'}:null;return;}
+    ME=DB.users.find(u=>u.id===s.id);
     if(ME&&!ME.aktif)ME=null;
     if(ME)ME={...ME,_type:s.type};
   }catch(e){ME=null;}
@@ -2330,7 +2363,7 @@ function sortSimpan(t){
   scrollTo(0,y);
 }
 const ui={surat:{q:'',jenis:'',page:1},setoran:{q:'',status:'',page:1},agen:{q:'',kab:'',page:1},pegawai:{q:'',peran:'',wilker:''},pick:[],riwayat:{q:''}};
-const NAV_SATKER=[['dash','Beranda','home'],['surat','Surat Tugas','file'],['setoran','Penerimaan','wallet'],['verifikasi','Scan QR','qr']];
+const NAV_SATKER=[['dash','Beranda','home'],['surat','Surat Tugas','file'],['permohonan','Permohonan Agen','send'],['setoran','Penerimaan','wallet'],['verifikasi','Scan QR','qr']];
 const NAV_SET=[
   ['set/pegawai','Pegawai & Akun','users','set.pegawai','Data pegawai, akun masuk, dan peran','m'],
   ['set/agen','Data Agen','ship','set.agen','Perusahaan pelayaran dan nomor WhatsApp','m'],
@@ -2357,10 +2390,14 @@ function route(){
   const tautan=h.match(/^t\/(.*)$/);
   if(h==='verifikasi'&&!ME){closeModal();renderVerifPublik();return;}
   if(tautan){closeModal();renderTautan(tautan[1]);return;}
+  if(isAgen()){closeModal();if(!/^a(\/|$)/.test(h))return location.hash='#/a';renderAgenPortal(h);return;}
+  if(h==='daftar'&&!ME){closeModal();renderDaftarAgen(false);return;}
   if(!ME){renderLogin();return;}
   closeModal();
   const [a,b,c]=h.split('/');
   const go=(t,html,back,after)=>renderShell(t,html,back,after);
+  if(a==='permohonan')return go('Permohonan Agen',vPermohonan());
+  if(a==='surat'&&b==='dari'&&c){if(!can('st.create'))return denied();const pm=permohonanOf(c);return pm&&pm.status==='baru'?go('Pembuatan Surat Tugas',vSuratForm(null,pm),'permohonan',afterSuratForm):notFound('permohonan');}
   if(a==='surat'&&b==='baru'){if(!can('st.create'))return denied();return go('Pembuatan Surat Tugas',vSuratForm(null),'surat',afterSuratForm);}
   if(a==='surat'&&b==='ubah'&&c){if(!can('st.create'))return denied();const s=findST(c);return s&&bolehLihat(s)?go('Ubah Surat Tugas',vSuratForm(s),'surat/'+c,afterSuratForm):notFound('surat');}
   if(a==='surat'&&b){const s=findST(b);return s&&bolehLihat(s)?go(namaKapal(s),vDetail(s),'surat'):notFound('surat');}
@@ -2392,7 +2429,7 @@ function renderShell(title,html,back,after){
   const grup=(judul,kode)=>{const l=sets.filter(n=>n[5]===kode);return l.length?`<div class="nav-h">${judul}</div>${l.map(n=>link(n)).join('')}`:'';};
   const peranTeks=teksPeran(ME);
   const side=`<aside class="side"><a class="brand" href="#/" title="${S.appName===NAMA_APP?KEPANJANGAN_APP:''}"><img src="${appLogo()}" alt=""><span class="grow"><b>${esc(S.appName)}</b><small>${esc(S.appSub)}</small></span></a>
-    <nav class="nav" aria-label="Menu utama">${it.map((n,i)=>link(n,i===0?need:0)).join('')}${grup('Manajemen','m')}${grup('Pengaturan','p')}</nav>
+    <nav class="nav" aria-label="Menu utama">${it.map((n,i)=>link(n,i===0?need:n[0]==='permohonan'?permohonanBaru().length:0)).join('')}${grup('Manajemen','m')}${grup('Pengaturan','p')}</nav>
     <div class="side-foot"><a class="me" href="#/akun"><span class="ava">${esc(initials(ME.nama))}</span><span class="grow"><b>${esc(ME.nama)}</b><span class="small muted">${peranTeks}</span></span></a><button class="btn ghost icon" data-act="logout" aria-label="Keluar" title="Keluar">${ic('logout')}</button></div></aside>`;
   const bn=[['dash','Beranda','home',need],['surat','Surat','file'],['verifikasi','Scan QR','qr',0,'fab fab-qr'],['setoran','Setoran','wallet'],sets.length?['pengaturan','Atur','cog']:['akun','Akun','user']];
   const onKey=k=>k==='surat'?h==='surat'||(/^surat\//.test(h)&&h!=='surat/baru'):k==='pengaturan'?h==='pengaturan'||h.startsWith('set/'):h===k;
@@ -2413,19 +2450,28 @@ function renderLogin(){
     <h1>${esc(S.appName)}</h1><p>${S.appName===NAMA_APP?KEPANJANGAN_APP:'Rekening Pemerintah Lainnya untuk biaya transportasi pemeriksaan kapal'}, ${esc(S.appSub)}.</p>
     <ul class="login-wk">${WILKER.map(w=>`<li>${esc(w.nama)}</li>`).join('')}</ul>
   </section><main class="login-main"><form class="login-form" data-form="login" novalidate>
-    <div><h2>Masuk</h2><p class="muted">Masuk dengan akun pribadi Anda. Username pegawai adalah NIP.</p></div>
+    <div><h2>Masuk</h2><p class="muted">Pegawai masuk dengan NIP, agen pelayaran dengan email akun agen.</p></div>
     ${field('Username','login','',{req:1,ac:'username'})}
     ${field('Kata sandi','password','',{req:1,type:'password',ac:'current-password'})}
     <button class="btn pri block">Masuk</button>
-    <a class="btn block" href="#/verifikasi" style="margin-top:12px">${ic('qr')} Scan / upload QR surat pernyataan</a>
+    <a class="btn block" href="#/daftar" style="margin-top:12px">${ic('ship')} Daftar akun agen pelayaran</a>
+    <a class="btn block" href="#/verifikasi" style="margin-top:10px">${ic('qr')} Scan / upload QR surat pernyataan</a>
     <div class="demo"><div class="lbl">Akun contoh prototipe</div><div class="wrap-row mt2">
       <button type="button" class="btn sm" data-act="demoLogin" data-l="admin" data-p="admin123">Admin satker</button>
       ${(p=>p?`<button type="button" class="btn sm" data-act="demoLogin" data-l="${esc(p.username)}" data-p="${PW_PETUGAS}">Petugas ${esc(p.nama.split(',')[0])}</button>`:'')((l=>{const urut=DB.st.flatMap(s=>s.petugas);return l.filter(u=>urut.includes(u.petugasId)).sort((x,y)=>urut.indexOf(x.petugasId)-urut.indexOf(y.petugasId))[0]||l[0];})(DB.users.filter(u=>peranOf(u).includes('petugas')&&u.petugasId&&u.aktif&&u.password===PW_PETUGAS)))}
+      ${(a=>a?`<button type="button" class="btn sm" data-act="demoLogin" data-l="${esc(a.email)}" data-p="agen123">Agen ${esc(a.nama.replace(/^PT\.?\s*/i,'').split(' ').slice(0,2).join(' '))}</button>`:'')(DB.agen.find(a=>agenAkunAktif(a)&&a.akun.password==='agen123'))}
     </div></div></form></main></div>`;
 }
 function doLogin(login,pw){
   const q=String(login).trim().toLowerCase();
   const u=DB.users.find(x=>x.username.toLowerCase()===q);
+  // Agen masuk dengan email akun agen
+  if(!u){const ag=DB.agen.find(a=>a.akun&&String(a.email||'').trim().toLowerCase()===q);if(ag){
+    if(ag.akun.password!==pw)return toast('Username atau kata sandi salah','bad');
+    if(ag.akun.status==='menunggu')return toast('Akun agen masih menunggu persetujuan admin satker','bad');
+    if(ag.akun.status==='ditolak')return toast('Pendaftaran akun agen ditolak'+(ag.akun.alasan?': '+ag.akun.alasan:''),'bad');
+    if(ag.aktif===false)return toast('Akun agen dinonaktifkan. Hubungi admin satker.','bad');
+    sessionStorage.setItem('rpl.session',JSON.stringify({type:'agen',id:ag.id}));ME={...ag,_type:'agen'};location.hash='#/a';route();return;}}
   const acc=u;
   if(!acc||acc.password!==pw)return toast('Username atau kata sandi salah','bad');
   if(!acc.aktif)return toast('Akun dinonaktifkan. Hubungi admin satker.','bad');
@@ -2517,13 +2563,14 @@ function renderSuratList(){
 
 /* ================= Form surat tugas ================= */
 let formJenis=['cop'],formOrang=3,halOtomatis='';
-function vSuratForm(s){
+function vSuratForm(s,pm){
   const saya=s?null:sayaPetugas();
   const v=s||{jenis:[],tglST:today(),tanggal:today(),tglAgen:today(),hal:'',posisi:'',penandatangan:'kepala',petugas:saya&&saya.aktif?[saya.id]:[],wilker:saya?saya.wilker||'':''};
+  if(pm)Object.assign(v,{agenId:pm.agenId,agenSurat:pm.agenSurat,noSurat:pm.noSurat,tglAgen:pm.tglSurat,hal:pm.hal,kapal:pm.kapal,gt:pm.gt,posisi:pm.posisi,tanggal:pm.tanggal,wilker:pm.wilker||v.wilker});
   formJenis=urutJenis(v.jenis);formOrang=s?s.petugas.length:CONTOH.cop;ui.pick=[...v.petugas];halOtomatis=halDari(formJenis);
   const a=v.agenId?agenOf(v.agenId):null;
   const pj=DB.settings.pejabat.filter(p=>p.nama);
-  return `<form class="split" data-form="surat" data-id="${s?s.id:''}" novalidate><div class="stack">
+  return `${pm?`<div class="alert info" style="margin-bottom:var(--gap)">${ic('send')}<span>Dari permohonan agen <b>${esc(pm.agenSurat)}</b> nomor ${esc(pm.noSurat)}. Data surat agen dan kapal sudah terisi; lengkapi jenis pemeriksaan dan petugas. ${pm.fileId?`<button type="button" class="btn sm" data-act="openFile" data-file="${pm.fileId}">${ic('file')} Lihat surat permohonan</button>`:''}</span></div>`:''}<form class="split" data-form="surat" data-id="${s?s.id:''}" data-perm="${pm?pm.id:''}" novalidate><div class="stack">
   <div class="card"><div class="hd"><h2>Jenis pemeriksaan</h2><span class="small muted"><span id="jenis-count">${v.jenis.length?`${v.jenis.length} dipilih`:'Belum dipilih'}</span>, bisa lebih dari satu</span></div><div class="bd stack jenis-bd">
     ${ME.wilker?`<div class="jb"><span class="lbl">Wilayah kerja</span><div class="jb-isi"><span class="tag info">${esc(wkNama(ME.wilker))}</span></div></div>`:`<div class="jb jb-tumpuk"><label class="lbl req" for="f_wilker">Wilayah kerja</label><div class="jb-isi"><select class="inp" id="f_wilker" name="wilker"><option value="">Pilih wilayah kerja</option>${WILKER.map(w=>`<option value="${w.id}" ${v.wilker===w.id?'selected':''}>${esc(w.nama)}</option>`).join('')}</select></div></div>`}
     <div id="jenis-grid">${jenisButtons()}</div>
@@ -2597,7 +2644,7 @@ function vDetail(s){
   const ptgs=s.petugas.map(p=>{const u=petugasOf(p)||{};return `<div>${esc(u.nama||'-')}<div class="small muted">${esc(u.jabatan||'')}</div></div>`;}).join('');
   return `<div class="wrap-row" style="margin-bottom:12px">${stageTag(s)}${tagJenis(s)}${lewatBatas(s)?'<span class="tag bad">Lewat batas bayar</span>':''}</div>
   <div class="twocol"><div class="card"><div class="hd"><h2>Alur pemrosesan</h2></div><div class="bd"><ol class="steps">${steps}</ol></div></div>
-  <div class="stack"><div class="card"><div class="hd"><h2>Rincian</h2>${can('st.create')&&!b?`<a class="btn sm" href="#/surat/ubah/${s.id}">${ic('edit')} Ubah</a>`:''}</div><div class="bd"><dl class="kv">
+  <div class="stack">${kartuDokAgen(s)}<div class="card"><div class="hd"><h2>Rincian</h2>${can('st.create')&&!b?`<a class="btn sm" href="#/surat/ubah/${s.id}">${ic('edit')} Ubah</a>`:''}</div><div class="bd"><dl class="kv">
     <dt>Wilayah kerja</dt><dd>${esc(wkNama(s.wilker)||'-')}</dd>
     <dt>Agen</dt><dd>${esc(a.nama||'-')}<div class="small muted">${esc(a.telp||'')}</div></dd>
     <dt>Surat agen</dt><dd>${esc(s.noSurat)}<div class="small muted">${tglID(s.tglAgen)}, ${esc(s.hal)}</div></dd>
@@ -2637,7 +2684,136 @@ function renderSetoranList(){
 /* ================= Tampilan agen ================= */
 const baisBukti=b=>`<dt>Penyetor</dt><dd>${esc(b.nama)}</dd>${b.bank?`<dt>Bank</dt><dd>${esc(b.bank)}</dd>`:''}${b.norek?`<dt>No. rekening</dt><dd class="mono">${esc(b.norek)}</dd>`:''}<dt>Tanggal transfer</dt><dd>${tglID(b.tgl)}</dd>${b.at?`<dt>Dikirim</dt><dd>${waktu(b.at)}</dd>`:''}`;
 const namaAgenST=s=>(agenOf(s.agenId)||{}).nama||'Agen';
-const stDariTautan=()=>{const m=(location.hash||'').match(/^#\/?t\/(.+)$/);return m?DB.st.find(s=>s.token===m[1]):null;};
+const stDariTautan=()=>{const h=location.hash||'',m=h.match(/^#\/?t\/(.+)$/);if(m)return DB.st.find(s=>s.token===m[1]);
+  const a=h.match(/^#\/?a\/s\/(.+)$/);if(a&&isAgen()){const s=findST(a[1]);return s&&s.agenId===ME.id?s:null;}return null;};
+/* ================= Portal agen: daftar, masuk, permohonan, pelacakan ================= */
+const isAgen=()=>!!ME&&ME._type==='agen';
+const agenAkunAktif=a=>!!(a&&a.akun&&a.akun.status==='aktif'&&a.aktif!==false);
+const permohonanOf=id=>(DB.permohonan||[]).find(p=>p.id===id);
+const stAgen=()=>isAgen()?DB.st.filter(s=>s.agenId===ME.id):[];
+const permohonanAgen=()=>isAgen()?(DB.permohonan||[]).filter(p=>p.agenId===ME.id):[];
+const HAL_PERMOHONAN='Rencana Kedatangan/Keberangkatan Kapal';
+/* Langkah pelacakan: [judul, status done|now|wait|skip|bad, keterangan] */
+function langkahAgen(s,p){
+  const L=[];
+  if(p||(s&&s.permohonanId)){const pm=p||permohonanOf(s.permohonanId);L.push(['Permohonan dikirim','done',pm?`${esc(pm.noSurat)}, ${tglID(pm.tglSurat)}`:'']);}
+  if(!s){
+    if(p.status==='ditolak')L.push(['Permohonan ditolak','bad',esc(p.alasan||'')]);
+    else L.push(['Diterima & diproses satker','now','Petugas sedang menyiapkan surat tugas.']);
+    ['Surat tugas disahkan (TTE Srikandi)','Konfirmasi transportasi','Tagihan & pembayaran','Selesai'].forEach(j=>L.push([j,'wait','']));
+    return L;
+  }
+  const sah=!!(s.nomor&&s.fileST),jauh=jarakST(s)==='jauh',k=stage(s),tanpa=tanpaTagihan(s);
+  L.push(['Surat tugas dibuat','done',`${s.petugas.length} petugas, pemeriksaan ${tglID(s.tanggal)}`]);
+  L.push(['Surat tugas disahkan (TTE Srikandi)',sah?'done':'now',sah?`Nomor ${esc(s.nomor)}${jauh?', termasuk SPD petugas':''}`:'Menunggu pengesahan di Srikandi.']);
+  L.push(['Konfirmasi transportasi',s.jemput?'done':sah?'now':'wait',s.jemput?esc(jemputTeks(s)):'Pilih apakah agen menyediakan transportasi petugas.']);
+  if(jauh)L.push(['SPD ditandatangani & dicap agen',s.spdCap?'done':sah?'now':'wait',s.spdCap?`Diunggah ${waktu(s.spdCap.at)}`:'Unduh SPD, tanda tangan & cap basah, lalu unggah kembali.']);
+  if(tanpa)L.push(['Tagihan','skip','Tidak ada tagihan karena transportasi disediakan agen.']);
+  else{
+    L.push(['Tagihan terbit',s.tagihan?'done':s.jemput?'now':'wait',s.tagihan?`${esc(s.tagihan.nomor)}, Rp ${rp(totalTagihan(s.tagihan))}`:'Menunggu tagihan dari petugas.']);
+    L.push(['Pembayaran & validasi',k==='valid'?'done':k==='tolak'?'bad':k==='validasi'?'now':k==='bayar'?'now':'wait',k==='valid'?'Pembayaran valid.':k==='tolak'?'Bukti ditolak, kirim ulang.':k==='validasi'?'Bukti terkirim, menunggu validasi.':k==='bayar'?'Silakan transfer dan kirim bukti.':'']);
+  }
+  const selesai=(tanpa||k==='valid')&&(!jauh||!!s.spdCap)&&sah&&!!s.jemput;
+  L.push(['Selesai',selesai?'done':'wait',selesai?'Seluruh proses selesai.':'']);
+  return L;
+}
+const persenLangkah=L=>{const n=L.filter(x=>x[1]!=='skip'),d=n.filter(x=>x[1]==='done').length;return Math.round(100*d/Math.max(1,n.length));};
+function progresHtml(L){const pc=persenLangkah(L),buruk=L.some(x=>x[1]==='bad');
+  return `<div class="trk-bar ${buruk?'buruk':''}" role="progressbar" aria-valuenow="${pc}" aria-valuemin="0" aria-valuemax="100" aria-label="Kemajuan ${pc} persen"><i style="width:${pc}%"></i></div><div class="small muted trk-pc">${pc}% selesai</div>`;}
+function langkahHtml(L){return `<ol class="trk">${L.map(([j,st,ket])=>`<li class="${st}"><span class="trk-dot">${st==='done'?ic('check'):st==='bad'?ic('x'):''}</span><div><b>${j}</b>${ket?`<div class="small muted">${ket}</div>`:''}</div></li>`).join('')}</ol>`;}
+function renderAgenPortal(h){
+  const S=DB.settings,[,b,c]=h.split('/');
+  const themeIc=document.documentElement.dataset.theme==='dark'?'sun':'moon';
+  let judul='Beranda',isi,kembali='';
+  if(b==='baru'){judul='Ajukan Permohonan';isi=vAgenPermohonanForm();kembali='a';}
+  else if(b==='p'&&c){const p=permohonanOf(c);judul=p?p.kapal:'Permohonan';isi=p&&p.agenId===ME.id?vAgenPermohonan(p):'<div class="card empty">Permohonan tidak ditemukan.</div>';kembali='a';}
+  else if(b==='s'&&c){const s=findST(c);judul=s?namaKapal(s):'Surat tugas';isi=s&&s.agenId===ME.id?vAgenST(s):'<div class="card empty">Surat tugas tidak ditemukan.</div>';kembali='a';}
+  else if(b==='akun'){judul='Akun Agen';isi=vAgenAkun();kembali='a';}
+  else isi=vAgenBeranda();
+  document.title=`${judul} - ${S.appName}`;
+  $('#app').innerHTML=`<header class="top agen-top"><div class="top-in agen-in">${kembali?`<a class="btn ghost icon" href="#/${kembali}" aria-label="Kembali">${ic('back')}</a>`:`<img class="agen-logo" src="${appLogo()}" alt="">`}<div class="grow"><b class="agen-app">${esc(S.appName)}</b><span class="small muted agen-nama">${esc(ME.nama)}</span></div>
+    <a class="btn ghost icon" href="#/a/akun" aria-label="Akun agen" title="Akun agen">${ic('user')}</a><button class="btn ghost icon" data-act="toggleTheme" aria-label="Ganti tema">${ic(themeIc)}</button><button class="btn ghost icon" data-act="logout" aria-label="Keluar" title="Keluar">${ic('logout')}</button></div></header>
+  <main class="content agen-isi"><h1 class="agen-h1">${esc(judul)}</h1>${isi}</main>`;
+  scrollTo(0,0);muatThumb();
+}
+function vAgenBeranda(){
+  const daftar=[...permohonanAgen().filter(p=>!p.stId).map(p=>({t:p.dibuat,p})),...stAgen().map(s=>({t:s.dibuat||0,s}))].sort((x,y)=>y.t-x.t);
+  const baris=x=>{const L=langkahAgen(x.s,x.p),kini=L.find(l=>l[1]==='now'||l[1]==='bad'),nm=x.s?namaKapal(x.s):`${x.p.kapal} (GT.${x.p.gt})`,tg=x.s?x.s.tanggal:x.p.tanggal;
+    return `<a class="card agen-item" href="#/a/${x.s?'s/'+x.s.id:'p/'+x.p.id}"><div class="row"><span class="grow"><b class="strong">${esc(nm)}</b><span class="small muted d-blok">${esc(x.s?x.s.posisi:x.p.posisi)} | ${tglID(tg)}</span></span><span class="tag ${kini&&kini[1]==='bad'?'bad':kini?'warn':'ok'}">${kini?kini[0]:'Selesai'}</span></div>${progresHtml(L)}</a>`;};
+  return `<div class="agen-aksi"><a class="btn pri" href="#/a/baru">${ic('plus')}<span>Ajukan permohonan pemeriksaan</span></a></div>
+  ${daftar.length?`<div class="stack">${daftar.map(baris).join('')}</div>`:`<div class="card empty">Belum ada permohonan. Ajukan permohonan pemeriksaan kapal dengan mengunggah surat permohonan Anda.</div>`}`;
+}
+function vAgenPermohonanForm(){
+  return `<form class="card" data-form="permohonan" novalidate><div class="hd"><h2>Data surat permohonan</h2></div><div class="bd grid2">
+    ${field('Nama perusahaan pada surat','agenSurat',ME.nama,{req:1,cls:'span2'})}
+    ${field('Nomor surat','noSurat','',{req:1,ph:'17 / X /BNE-TRK/OPS/2026'})}${field('Tanggal surat','tglSurat',today(),{req:1,type:'date'})}
+    ${field('Hal surat','hal',HAL_PERMOHONAN,{req:1,cls:'span2'})}
+    ${field('Nama kapal','kapal','',{req:1,ph:'MV. MERIT TRADER'})}${field('Tonase (GT)','gt','',{req:1,mode:'decimal',ph:'32.726',hint:'Angka, koma untuk desimal.'})}
+    ${field('Posisi kapal','posisi','',{req:1,list:'posisi-agen',ph:'REDE TARAKAN'})}<datalist id="posisi-agen">${DB.settings.posisi.map(p=>`<option value="${esc(p)}">`).join('')}</datalist>
+    ${field('Rencana tanggal pemeriksaan','tanggal',today(),{req:1,type:'date'})}
+    <div class="field span2"><label for="f_wkp">Wilayah kerja</label><select class="inp" id="f_wkp" name="wilker"><option value="">Belum tahu</option>${WILKER.map(w=>`<option value="${w.id}">${esc(w.nama)}</option>`).join('')}</select></div>
+    ${field('Surat permohonan (PDF/foto)','file','',{type:'file',req:1,cls:'span2',accept:'.pdf,.jpg,.jpeg,.png',hint:'Surat bertanda tangan dan cap perusahaan, maksimal 5 MB.'})}
+    ${field('Catatan untuk petugas','catatan','',{type:'textarea',rows:2,cls:'span2'})}
+  </div><div class="mf"><a class="btn" href="#/a">Batal</a><button class="btn pri">${ic('send')} Kirim permohonan</button></div></form>`;
+}
+function vAgenPermohonan(p){
+  const L=langkahAgen(null,p);
+  return `<div class="cols2"><div class="stack"><div class="card"><div class="hd"><h2>Pelacakan</h2></div><div class="bd">${progresHtml(L)}${langkahHtml(L)}</div></div></div>
+  <div class="stack"><div class="card"><div class="hd"><h2>Permohonan</h2></div><div class="bd"><dl class="kv"><dt>Nomor surat</dt><dd>${esc(p.noSurat)}, ${tglID(p.tglSurat)}</dd><dt>Hal</dt><dd>${esc(p.hal)}</dd><dt>Kapal</dt><dd>${esc(p.kapal)} (GT.${esc(p.gt)})</dd><dt>Posisi</dt><dd>${esc(p.posisi)}</dd><dt>Rencana periksa</dt><dd>${tglID(p.tanggal)}</dd>${p.catatan?`<dt>Catatan</dt><dd>${esc(p.catatan)}</dd>`:''}</dl>
+    <div class="acts mt">${p.fileId?`<button class="btn sm" data-act="openFile" data-file="${p.fileId}">${ic('file')} Lihat surat permohonan</button>`:''}${p.status==='baru'?`<button class="btn sm danger" data-act="batalPermohonan" data-id="${p.id}">${ic('trash')} Batalkan</button>`:''}</div></div></div></div></div>`;
+}
+function vAgenST(s){
+  const L=langkahAgen(s),jauh=jarakST(s)==='jauh',sah=!!(s.nomor&&s.fileST),pm=s.permohonanId?permohonanOf(s.permohonanId):null;
+  const dok=`<div class="card"><div class="hd"><h2>Dokumen</h2></div><div class="bd stack">
+    ${pm&&pm.fileId?`<div class="row"><span class="grow">Surat permohonan Anda</span><button class="btn sm" data-act="openFile" data-file="${pm.fileId}">${ic('file')} Lihat</button></div>`:''}
+    <div class="row"><span class="grow">Surat tugas${jauh?' & SPD petugas':''} (TTE Srikandi)<span class="small muted d-blok">${sah?'Nomor '+esc(s.nomor):'Belum disahkan'}</span></span>${sah?`<button class="btn sm pri" data-act="openFile" data-file="${s.fileST}">${ic('down')} Unduh</button>`:''}</div>
+    ${jauh?`<div class="spd-cap ${s.spdCap?'ada':''}"><b>SPD bertanda tangan & cap basah</b><p class="small muted">${s.spdCap?`Sudah diunggah ${waktu(s.spdCap.at)}.`:'Cetak halaman SPD dari surat tugas di atas, tanda tangani dan beri cap basah perusahaan pada kolom tiba/berangkat, lalu unggah hasil pindainya.'}</p>
+      ${s.spdCap?`<button class="btn sm" data-act="openFile" data-file="${s.spdCap.fileId}">${ic('file')} Lihat SPD bercap</button>`:''}
+      ${sah?`<form class="stack mt2" data-form="spdCap" data-id="${s.id}" novalidate>${field(s.spdCap?'Ganti berkas SPD':'Berkas SPD (PDF/foto)','file','',{type:'file',accept:'.pdf,.jpg,.jpeg,.png'})}<button class="btn sm pri" style="justify-self:start">${ic('upload')} Unggah SPD</button></form>`:'<p class="small muted">Tersedia setelah surat tugas disahkan.</p>'}</div>`:''}
+  </div></div>`;
+  return `<div class="cols2"><div class="stack"><div class="card"><div class="hd"><h2>Pelacakan</h2></div><div class="bd">${progresHtml(L)}${langkahHtml(L)}</div></div>${dok}</div><div class="stack">${vAgenKapal(s)}</div></div>`;
+}
+function vAgenAkun(){
+  const a=agenOf(ME.id)||{};
+  return `<div class="cols2"><div class="card"><div class="hd"><h2>Data perusahaan</h2></div><div class="bd"><dl class="kv"><dt>Perusahaan</dt><dd>${esc(a.nama)}</dd><dt>Email (username)</dt><dd>${esc(a.email)}</dd><dt>WhatsApp</dt><dd>${esc(a.telp)}</dd><dt>Alamat</dt><dd>${esc(a.alamat||'-')}</dd><dt>Wilayah</dt><dd>${esc(a.kab||'-')}</dd></dl><p class="small muted mt">Perubahan data perusahaan dilakukan oleh admin satker.</p></div></div>
+  <form class="card" data-form="sandiAgen" novalidate><div class="hd"><h2>Ganti kata sandi</h2></div><div class="bd stack">${field('Kata sandi lama','lama','',{type:'password',req:1,ac:'current-password'})}${field('Kata sandi baru','baru','',{type:'password',req:1,ac:'new-password',hint:'Minimal 6 karakter.'})}<button class="btn pri" style="justify-self:start">Simpan</button></div></form></div>`;
+}
+function renderDaftarAgen(selesai){
+  const S=DB.settings;document.title=`Daftar Agen - ${S.appName}`;
+  $('#app').innerHTML=`<div class="login"><section class="login-side"><img class="lg" src="${appLogo()}" alt=""><h1>${esc(S.appName)}</h1><p>Pendaftaran akun agen pelayaran untuk mengajukan permohonan pemeriksaan kapal dan memantau prosesnya.</p></section>
+  <main class="login-main">${selesai?`<div class="login-form"><div class="alert ok">${ic('check')}<span>Pendaftaran terkirim. Admin satker akan memeriksa dan mengaktifkan akun Anda. Setelah aktif, masuk dengan email dan kata sandi yang didaftarkan.</span></div><a class="btn pri block" href="#/">Kembali ke halaman masuk</a></div>`:
+  `<form class="login-form" data-form="daftarAgen" novalidate><div><h2>Daftar akun agen</h2><p class="muted">Akun aktif setelah disetujui admin satker.</p></div>
+    ${field('Nama perusahaan pelayaran','nama','',{req:1,ph:'PT. ...'})}${field('Email (dipakai untuk masuk)','email','',{req:1,type:'email',ac:'email'})}${field('Nomor WhatsApp','telp','',{req:1,mode:'tel',ph:'08...'})}
+    ${field('Kabupaten/Kota','kab','',{req:1,ph:'Kota Tarakan'})}${field('Alamat kantor','alamat','',{type:'textarea',rows:2})}
+    ${field('Kata sandi','password','',{req:1,type:'password',ac:'new-password',hint:'Minimal 6 karakter.'})}${field('Ulangi kata sandi','password2','',{req:1,type:'password',ac:'new-password'})}
+    <button class="btn pri block">Kirim pendaftaran</button><a class="btn block" href="#/" style="margin-top:10px">Sudah punya akun? Masuk</a></form>`}</main></div>`;
+}
+/* ================= Permohonan agen (sisi satker) ================= */
+function kartuDokAgen(s){
+  const pm=s.permohonanId?permohonanOf(s.permohonanId):null,jauh=jarakST(s)==='jauh';if(!pm&&!jauh)return '';
+  return `<div class="card"><div class="hd"><h2>Dokumen dari agen</h2></div><div class="bd stack">${pm?`<div class="row"><span class="grow">Surat permohonan<span class="small muted d-blok">${esc(pm.noSurat)}, ${tglID(pm.tglSurat)}</span></span>${pm.fileId?`<button class="btn sm" data-act="openFile" data-file="${pm.fileId}">${ic('file')} Lihat</button>`:''}</div>`:''}${jauh?`<div class="row"><span class="grow">SPD bertanda tangan & cap agen<span class="small muted d-blok">${s.spdCap?'Diunggah '+waktu(s.spdCap.at):'Belum diunggah agen'}</span></span>${s.spdCap?`<button class="btn sm" data-act="openFile" data-file="${s.spdCap.fileId}">${ic('file')} Lihat</button>`:'<span class="tag warn">Menunggu</span>'}</div>`:''}</div></div>`;
+}
+const permohonanBaru=()=>(DB.permohonan||[]).filter(p=>p.status==='baru');
+const agenMenunggu=()=>DB.agen.filter(a=>a.akun&&a.akun.status==='menunggu');
+function vPermohonan(){
+  const l=[...(DB.permohonan||[])].sort((a,b)=>(a.status==='baru'?0:1)-(b.status==='baru'?0:1)||b.dibuat-a.dibuat);
+  meta('Permohonan pemeriksaan kapal yang diajukan agen lewat akun agen');
+  const tag={baru:['Baru','warn'],diproses:['Diproses','ok'],ditolak:['Ditolak','bad']};
+  return `<div class="card">${l.length?`<div class="tblwrap"><table class="tbl"><thead><tr><th>Kapal</th><th>Agen</th><th>Surat agen</th><th class="right">Rencana periksa</th><th>Status</th></tr></thead><tbody>${l.map(p=>{const a=agenOf(p.agenId)||{};return `<tr class="click" data-act="lihatPermohonan" data-id="${p.id}">
+    <td class="hd-cell"><span class="strong">${esc(p.kapal)} (GT.${esc(p.gt)})</span><div class="small muted">${esc(p.posisi)}${p.wilker?' | '+esc(wkNama(p.wilker)):''}</div></td>
+    <td data-l="Agen"><span>${esc(p.agenSurat||a.nama||'')}</span></td><td data-l="Surat agen"><span>${esc(p.noSurat)}<span class="small muted d-blok">${tglID(p.tglSurat)}</span></span></td>
+    <td data-l="Rencana periksa" class="right"><span>${tglID(p.tanggal)}</span></td><td data-l="Status"><span class="tag ${tag[p.status][1]}">${tag[p.status][0]}</span></td></tr>`;}).join('')}</tbody></table></div>`:'<div class="empty">Belum ada permohonan dari agen.</div>'}</div>`;
+}
+function permohonanModal(p){
+  const a=agenOf(p.agenId)||{},s=p.stId?findST(p.stId):null;
+  openModal({title:'Permohonan '+p.kapal,body:`<dl class="kv"><dt>Agen</dt><dd>${esc(p.agenSurat||a.nama)}<span class="small muted d-blok">${esc(a.email||'')} | ${esc(a.telp||'')}</span></dd><dt>Nomor surat</dt><dd>${esc(p.noSurat)}, ${tglID(p.tglSurat)}</dd><dt>Hal</dt><dd>${esc(p.hal)}</dd><dt>Kapal</dt><dd>${esc(p.kapal)} (GT.${esc(p.gt)})</dd><dt>Posisi</dt><dd>${esc(p.posisi)}</dd><dt>Rencana periksa</dt><dd>${tglID(p.tanggal)}</dd><dt>Wilayah kerja</dt><dd>${esc(wkNama(p.wilker)||'Belum dipilih agen')}</dd>${p.catatan?`<dt>Catatan agen</dt><dd>${esc(p.catatan)}</dd>`:''}${p.status==='ditolak'?`<dt>Alasan ditolak</dt><dd>${esc(p.alasan)}</dd>`:''}</dl>
+    ${p.fileId?`<button class="btn sm mt" data-act="openFile" data-file="${p.fileId}">${ic('file')} Lihat surat permohonan</button>`:'<p class="small muted mt">Contoh tanpa berkas.</p>'}`,
+    foot:`<button class="btn" data-act="closeModal">Tutup</button>${p.status==='baru'&&can('st.create')?`<button class="btn danger" data-act="tolakPermohonan" data-id="${p.id}">Tolak</button><a class="btn pri" href="#/surat/dari/${p.id}">${ic('file')} Proses jadi surat tugas</a>`:''}${s?`<a class="btn pri" href="#/surat/${s.id}">Buka surat tugas</a>`:''}`});
+}
+function vAgenMenunggu(){
+  const l=agenMenunggu();if(!l.length||!canSet('set.agen'))return '';
+  return `<div class="card" style="margin-bottom:var(--gap)"><div class="hd"><h2>Pendaftaran akun agen menunggu persetujuan</h2><span class="tag warn">${l.length}</span></div><ul class="peran-ket">${l.map(a=>`<li><span class="grow"><b class="strong">${esc(a.nama)}</b><span class="small muted d-blok">${esc(a.email)} | ${esc(a.telp)} | ${esc(a.kab||'')} | daftar ${waktu(a.akun.daftar)}</span></span><button class="btn sm danger" data-act="tolakAgen" data-id="${a.id}">Tolak</button><button class="btn sm pri" data-act="setujuiAgen" data-id="${a.id}">${ic('check')} Setujui</button></li>`).join('')}</ul></div>`;
+}
 function renderTautan(tk){
   const S=DB.settings,s=tk?DB.st.find(x=>x.token===tk):null;
   document.title=(s?s.kapal+' - ':'')+S.appName;
@@ -2728,7 +2904,7 @@ function vHub(it){
 function vSetAgen(){
   const kabs=[...new Set(DB.agen.map(a=>a.kab))].sort();
   meta(`${DB.agen.length} perusahaan pelayaran terdaftar`,`<button class="btn" data-act="agenExport">${ic('down')}<span>Ekspor</span></button><label class="btn">${ic('upload')}<span>Impor CSV</span><input type="file" accept=".csv,text/csv" data-change="agenImport" hidden></label><button class="btn pri" data-act="agenForm">${ic('plus')}<span>Tambah agen</span></button>`);
-  return `<div class="toolbar"><div class="search">${ic('search')}<input class="inp" placeholder="Cari nama, email, telepon, SIUP" value="${esc(ui.agen.q)}" data-input="agenQ" aria-label="Cari agen"></div>
+  return `${vAgenMenunggu()}<div class="toolbar"><div class="search">${ic('search')}<input class="inp" placeholder="Cari nama, email, telepon, SIUP" value="${esc(ui.agen.q)}" data-input="agenQ" aria-label="Cari agen"></div>
   <select class="inp" data-change="agenKab" aria-label="Wilayah"><option value="">Semua wilayah</option>${kabs.map(k=>`<option ${ui.agen.kab===k?'selected':''}>${esc(k)}</option>`).join('')}</select></div><div class="card" id="list"></div>`;
 }
 function renderAgenList(){
@@ -2973,6 +3149,11 @@ const actions={
     downloadBlob(new Blob(['﻿'+[head.join(';'),...lines].join('\r\n')],{type:'text/csv;charset=utf-8'}),`data-agen-${today()}.csv`);},
   pegawaiForm(el){pegawaiModal(el.dataset.p?petugasOf(el.dataset.p):null,el.dataset.u?userOf(el.dataset.u):null);},
   pegawaiEkspor(){const r=[['nama','nip','pangkat','jabatan','wilker','username','peran','bisa_ditugaskan','akun_aktif']];daftarOrang().filter(x=>x.p).forEach(({p,u})=>r.push([p.nama,p.nip,p.pangkat,p.jabatan,wkNama(p.wilker),u?u.username:'',u?peranOf(u).join('+'):'',p.aktif?'ya':'tidak',u?(u.aktif?'ya':'tidak'):'']));downloadBlob(new Blob(['\ufeff'+r.map(x=>x.map(csvCell).join(';')).join('\r\n')],{type:'text/csv'}),'pegawai-bkk-tarakan.csv');toast('Data pegawai diekspor');},
+  lihatPermohonan(el){const p=permohonanOf(el.dataset.id);if(p)permohonanModal(p);},
+  batalPermohonan(el){const p=permohonanOf(el.dataset.id);if(!p||p.agenId!==ME.id||p.status!=='baru')return;confirmBox('Batalkan permohonan','Permohonan ini akan dihapus.',async()=>{DB.permohonan=DB.permohonan.filter(x=>x!==p);if(p.fileId)await store.del('files',p.fileId);save();location.hash='#/a';toast('Permohonan dibatalkan');},'Batalkan',true);},
+  tolakPermohonan(el){const p=permohonanOf(el.dataset.id);openModal({title:'Tolak permohonan',form:'tolakPermohonan',body:'<input type="hidden" name="id" value="'+p.id+'">'+field('Alasan penolakan','alasan','',{type:'textarea',rows:3,req:1,hint:'Alasan ditampilkan kepada agen.'}),foot:'<button type="button" class="btn" data-act="closeModal">Batal</button><button class="btn danger">Tolak permohonan</button>'});},
+  setujuiAgen(el){const a=agenOf(el.dataset.id);if(!a||!a.akun)return;a.akun.status='aktif';delete a.akun.alasan;a.aktif=true;save();route();toast('Akun agen '+a.nama+' disetujui');},
+  tolakAgen(el){const a=agenOf(el.dataset.id);openModal({title:'Tolak pendaftaran agen',form:'tolakAgen',body:'<input type="hidden" name="id" value="'+a.id+'">'+field('Alasan penolakan','alasan','',{type:'textarea',rows:3,req:1,hint:'Ditampilkan saat agen mencoba masuk.'}),foot:'<button type="button" class="btn" data-act="closeModal">Batal</button><button class="btn danger">Tolak</button>'});},
   peranForm(el){peranModal(el.dataset.id?cariPeran(el.dataset.id):null);},
   hapusPeran(el){const p=cariPeran(el.dataset.id),n=DB.users.filter(u=>peranOf(u).includes(p.id));
     confirmBox('Hapus peran',`Peran ${p.nama} akan dihapus${n.length?` dan dilepas dari ${n.length} akun; akun yang tidak punya peran lain tidak bisa masuk`:''}.`,()=>{DB.settings.peran=daftarPeran().filter(x=>x.id!==p.id);delete DB.settings.permsPeran[p.id];n.forEach(u=>{u.peran=peranOf(u).filter(r=>r!==p.id);});save();route();toast('Peran dihapus');},'Hapus',true);},
@@ -3003,6 +3184,8 @@ const forms={
     const id=f.dataset.id;let s,jarakUbah=false;
     if(id){s=findST(id);jarakUbah=jarakST(s)!==data.jarak;Object.assign(s,data);addLog(s,'Surat tugas diubah');}
     else{s={id:uid(),token:tokenBaru(),dibuat:Date.now(),dibuatOleh:ME.id,nomor:'',fileST:null,jemput:null,tagihan:null,bayar:null,notif:{},log:[],...data};addLog(s,'Surat tugas dibuat');DB.st.push(s);}
+    const pmAsal=!id&&f.dataset.perm?permohonanOf(f.dataset.perm):null;
+    if(pmAsal){pmAsal.status='diproses';pmAsal.stId=s.id;s.permohonanId=pmAsal.id;addLog(s,'Dibuat dari permohonan agen '+pmAsal.noSurat);}
     if(s.tagihan&&!s.bayar){const old=s.tagihan.rincian;s.tagihan.rincian=s.petugas.map(p=>{const u=petugasOf(p)||{};const ada=old.find(r=>r.id===p);return ada?(jarakUbah?{...ada,...biayaJarak(s.jarak)}:ada):{id:p,nama:u.nama,nip:u.nip||'',pangkat:u.pangkat||'',penginapan:0,...biayaJarak(s.jarak)};});}
     save();location.hash='#/surat/'+s.id;toast(!jarakUbah||!s.tagihan?'Tersimpan. Unduh surat, lalu kirim notifikasi ke agen.':s.bayar?'Tersimpan. Agen sudah mengirim bukti bayar, jadi nominal tagihan tidak diubah.':'Tersimpan. Jarak berubah, nominal tagihan ikut disesuaikan. Periksa kembali tagihannya.');
   },
@@ -3067,6 +3250,44 @@ const forms={
     else DB.agen.unshift({id:'ag'+uid(),tgl:today(),...d});
     closeModal();save();renderAgenList();toast('Data agen disimpan');
   },
+  daftarAgen(fd){
+    const g=k=>String(fd.get(k)||'').trim(),nama=g('nama'),email=g('email').toLowerCase(),telp=g('telp'),kab=g('kab'),pw=String(fd.get('password')||'');
+    if(!nama||!email||!telp||!kab)return toast('Lengkapi nama perusahaan, email, WhatsApp, dan kabupaten/kota','bad');
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))return toast('Format email tidak valid','bad');
+    if(!waNumber(telp))return toast('Nomor WhatsApp tidak dikenali','bad');
+    if(pw.length<6)return toast('Kata sandi minimal 6 karakter','bad');
+    if(pw!==String(fd.get('password2')||''))return toast('Ulangi kata sandi tidak sama','bad');
+    if(DB.users.some(u=>u.username.toLowerCase()===email))return toast('Email ini dipakai akun pegawai','bad');
+    const akun={password:pw,status:'menunggu',daftar:Date.now()};
+    const ada=DB.agen.find(a=>String(a.email||'').trim().toLowerCase()===email);
+    if(ada){if(ada.akun&&ada.akun.status!=='ditolak')return toast(ada.akun.status==='aktif'?'Email sudah punya akun agen. Silakan masuk.':'Pendaftaran email ini sedang menunggu persetujuan','bad');
+      ada.akun=akun;if(!ada.telp)ada.telp=telp;if(!ada.alamat)ada.alamat=g('alamat');}
+    else DB.agen.unshift({id:'ag'+uid(),nama,siup:'',email,telp,alamat:g('alamat'),provinsi:'',kab,ket:'Daftar mandiri lewat aplikasi',tgl:today(),aktif:true,akun});
+    save();renderDaftarAgen(true);
+  },
+  async permohonan(fd){
+    const g=k=>String(fd.get(k)||'').trim(),file=fd.get('file');
+    const need=[['agenSurat','Nama perusahaan'],['noSurat','Nomor surat'],['tglSurat','Tanggal surat'],['hal','Hal surat'],['kapal','Nama kapal'],['gt','Tonase (GT)'],['posisi','Posisi kapal'],['tanggal','Rencana tanggal pemeriksaan']];
+    for(const[k,l]of need)if(!g(k))return toast(l+' wajib diisi','bad');
+    if(!/^\d+([.,]\d+)?$/.test(g('gt')))return toast('Tonase (GT) harus berupa angka','bad');
+    if(!checkUpload(file,'Surat permohonan'))return;
+    const p={id:'pm'+uid(),agenId:ME.id,agenSurat:g('agenSurat'),noSurat:g('noSurat'),tglSurat:g('tglSurat'),hal:g('hal'),kapal:g('kapal').toUpperCase(),gt:g('gt').replace('.',','),posisi:g('posisi').toUpperCase(),tanggal:g('tanggal'),wilker:g('wilker'),catatan:g('catatan'),fileId:await saveFile(file),status:'baru',dibuat:Date.now()};
+    (DB.permohonan=DB.permohonan||[]).push(p);save();location.hash='#/a/p/'+p.id;toast('Permohonan terkirim. Pantau prosesnya di halaman ini.');
+  },
+  async spdCap(fd,f){
+    const s=findST(f.dataset.id),file=fd.get('file');if(!s||!isAgen()||s.agenId!==ME.id)return;
+    if(!checkUpload(file,'Berkas SPD'))return;
+    if(s.spdCap&&s.spdCap.fileId)await store.del('files',s.spdCap.fileId);
+    s.spdCap={fileId:await saveFile(file),at:Date.now(),oleh:ME.nama};addLog(s,'Agen mengunggah SPD bertanda tangan & cap',ME.nama);refresh();toast('SPD bertanda tangan & cap terkirim');
+  },
+  sandiAgen(fd,f){
+    const a=agenOf(ME.id),baru=String(fd.get('baru')||'');
+    if(!a||!a.akun||a.akun.password!==fd.get('lama'))return toast('Kata sandi lama salah','bad');
+    if(baru.length<6)return toast('Kata sandi baru minimal 6 karakter','bad');
+    a.akun.password=baru;save();f.reset();toast('Kata sandi diganti');
+  },
+  tolakPermohonan(fd){const p=permohonanOf(fd.get('id')),a=String(fd.get('alasan')||'').trim();if(!a)return toast('Alasan wajib diisi','bad');p.status='ditolak';p.alasan=a;p.ditolakAt=Date.now();closeModal();save();route();toast('Permohonan ditolak');},
+  tolakAgen(fd){const ag=agenOf(fd.get('id')),a=String(fd.get('alasan')||'').trim();if(!a)return toast('Alasan wajib diisi','bad');ag.akun.status='ditolak';ag.akun.alasan=a;closeModal();save();route();toast('Pendaftaran agen ditolak');},
   peran(fd){
     const g=k=>String(fd.get(k)||'').trim(),id=g('id'),nama=g('nama');
     if(!nama)return toast('Nama peran wajib diisi','bad');
@@ -3262,7 +3483,8 @@ let needRender=false,syncing=false;
 const sibuk=()=>modalOpen||!!kamera||!!$('#app form[data-form]')||/^(INPUT|TEXTAREA|SELECT)$/.test((document.activeElement||{}).tagName||'');
 function rerender(){const y=scrollY;route();scrollTo(0,y);}
 function umumkan(lama,baru){
-  if(!ME)return;
+  if(!ME||isAgen())return;
+  if(can('st.create')){const ada=new Set((lama.permohonan||[]).map(p=>p.id));(baru.permohonan||[]).forEach(p=>{if(!ada.has(p.id))toast('Permohonan baru dari agen: '+p.kapal);});}
   const dulu=new Map(lama.st.map(s=>[s.id,s]));
   baru.st.forEach(s=>{const o=dulu.get(s.id);if(!o||!bolehLihat(s))return;
     if(s.jemput&&!o.jemput)toast(`${s.kapal}: ${jemputTeks(s)}`);
