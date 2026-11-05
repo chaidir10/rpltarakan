@@ -1153,37 +1153,38 @@ const WILKER=[
 const wkNama=id=>(WILKER.find(w=>w.id===id)||{}).nama||'';
 const akunWilker=w=>({id:'u_wk_'+w.id,nama:'Wilker '+w.nama,username:w.username,password:'user123',role:'user',wilker:w.id,aktif:true});
 /* Akun petugas: username NIP (atau nama depan bila tanpa NIP), sandi bawaan petugas123 */
-/* Daftar petugas bawaan: [nama, NIP, pangkat, jabatan, kunci id]. NIP/pangkat/jabatan yang kosong dilengkapi admin. */
-const PETUGAS_AWAL=[["Aryanti","","","","aryanti"],
+/* Daftar petugas bawaan: [nama, NIP, pangkat, jabatan, kunci id, contoh]. contoh=1: NIP/pangkat/jabatan masih data contoh
+   (dummy) sampai admin menggantinya; tampil bertanda "Data contoh" di Pegawai & Akun. */
+const PETUGAS_AWAL=[["Aryanti","198401012009011101","Penata - III/c","Sanitarian Ahli Pertama (JFT)","aryanti",1],
   ["Agung Setiyawan, SKM","198110182006041003","Penata - III/c","Epidemiolog Kesehatan Ahli Muda (JFT)","agung"],
-  ["Danan Catur Gumelar","","","","danan"],
-  ["Dedi Irwan","","","","dedi"],
+  ["Danan Catur Gumelar","199106122012082102","Penata - III/c","Epidemiolog Kesehatan Ahli Pertama (JFT)","danan",1],
+  ["Dedi Irwan","198511232015031103","Penata Muda Tk. I - III/b","Entomolog Kesehatan Ahli Pertama (JFT)","dedi",1],
   ["Destry Arlina Putri, S.Kep, Ns","199212072025212036","IX","Administrator Kesehatan Ahli Pertama (JFT)","destry"],
-  ["Didi Prasetyo","","","","didi"],
-  ["Fianti Andua","","","","fianti"],
+  ["Didi Prasetyo","199204072018102104","Penata Muda - III/a","Perawat Ahli Pertama (JFT)","didi",1],
+  ["Fianti Andua","198609182021051105","IX","Administrator Kesehatan Ahli Pertama (JFT)","fianti",1],
   ["Haliq, SKM","198903162025211059","IX","Pembimbing Kesehatan Kerja Ahli Pertama (JFT)","haliq"],
-  ["Hermansyah","","","","hermansyah"],
+  ["Hermansyah","199302022024122106","IX","Pembimbing Kesehatan Kerja Ahli Pertama (JFT)","hermansyah",1],
   ["Hidayatullah, SKM","198002202006041003","Penata Tk. I - III/d","Epidemiolog Kesehatan Ahli Muda (JFT)","hidayatullah"],
-  ["Ike Rachmawati","","","","ike"],
-  ["Indah Suryawati","","","","indah"],
+  ["Ike Rachmawati","198707132011071107","Penata - III/c","Sanitarian Ahli Muda (JFT)","ike",1],
+  ["Indah Suryawati","199412242014022108","Penata Muda Tk. I - III/b","Epidemiolog Kesehatan Ahli Muda (JFT)","indah",1],
   ["Irayanti, SKM","198505092008122002","Penata - III/c","Entomolog Kesehatan Ahli Muda (JFT)","irayanti"],
-  ["Ivan Christopel Hasibuan","","","","ivan"],
-  ["Junadri Faizul","","","","junadri"],
+  ["Ivan Christopel Hasibuan","198805082017091109","Penata Muda - III/a","Sanitarian Ahli Pertama (JFT)","ivan",1],
+  ["Junadri Faizul","199510192020042110","Penata Muda - III/a","Epidemiolog Kesehatan Ahli Pertama (JFT)","junadri",1],
   ["dr. Kristianto Adiwiharyanto, M.K.M","198408202015031001","Penata Tk. I - III/d","Dokter Ahli Muda (JFT)","kristianto"],
-  ["Muhammad Husain","","","","muhammad"],
-  ["Novita","","","","novita"],
-  ["Nur Halidah Fatma Bahtiar","","","","nurhalidah"],
-  ["Nurusshiami Khairati","","","","nurusshiami"],
-  ["Raden Jaelani","","","","raden"],
+  ["Muhammad Husain","198903032023111111","IX","Entomolog Kesehatan Ahli Pertama (JFT)","muhammad",1],
+  ["Novita","199608142010062112","Penata - III/c","Perawat Ahli Pertama (JFT)","novita",1],
+  ["Nur Halidah Fatma Bahtiar","199001252013011113","Penata Muda Tk. I - III/b","Administrator Kesehatan Ahli Pertama (JFT)","nurhalidah",1],
+  ["Nurusshiami Khairati","198406092016082114","Penata Muda Tk. I - III/b","Pembimbing Kesehatan Kerja Ahli Pertama (JFT)","nurusshiami",1],
+  ["Raden Jaelani","199111202019031115","Penata Muda - III/a","Sanitarian Ahli Muda (JFT)","raden",1],
   ["Ramadani Sukaningtyas, SKM","199203162015032004","Penata Muda Tk. I - III/b","Entomolog Kesehatan Ahli Pertama (JFT)","ramadani"],
-  ["Raodatul Jannah","","","","raodatul"],
+  ["Raodatul Jannah","198504042022102116","IX","Epidemiolog Kesehatan Ahli Muda (JFT)","raodatul",1],
   ["Salim Akhmad, SKM","196907211994021001","Penata Tk. I - III/d","Sanitarian Ahli Muda (JFT)","salim"],
   ["Sulfikar, S.Kep,Ns","199210112025211053","X","Perawat Ahli Pertama (JFT)","sulfikar"],
-  ["Supriani","","","","supriani"],
-  ["Sur Dwi Astuty","","","","sur"],
-  ["Tona Bontor Melkisedek Sinaga","","","","tona"],
-  ["Wahyu Handoyo","","","","wahyu"],
-  ["Zulfitrahwati","","","","zulfitrahwati"]];
+  ["Supriani","199209152009051117","Penata - III/c","Sanitarian Ahli Pertama (JFT)","supriani",1],
+  ["Sur Dwi Astuty","198602262012122118","Penata - III/c","Epidemiolog Kesehatan Ahli Pertama (JFT)","sur",1],
+  ["Tona Bontor Melkisedek Sinaga","199307102015071119","Penata Muda Tk. I - III/b","Entomolog Kesehatan Ahli Pertama (JFT)","tona",1],
+  ["Wahyu Handoyo","198712212018022120","Penata Muda - III/a","Perawat Ahli Pertama (JFT)","wahyu",1],
+  ["Zulfitrahwati","199405052021091121","IX","Administrator Kesehatan Ahli Pertama (JFT)","zulfitrahwati",1]];
 const namaInti=n=>String(n||'').toLowerCase().replace(/^dr\.?\s*/,'').split(',')[0].replace(/\s+/g,' ').trim();
 function tambahPetugasAwal(d){PETUGAS_AWAL.forEach(([nama,nip,pangkat,jabatan,key])=>{if(d.petugas.some(p=>p.id==='u_'+key||namaInti(p.nama)===namaInti(nama)||(nip&&p.nip===nip)))return;d.petugas.push({id:'u_'+key,nama,nip,pangkat,jabatan,wilker:'',aktif:true});});}
 /* Nama aplikasi resmi (bawaan pengaturan; admin masih bisa mengubah di Aplikasi) */
@@ -1207,7 +1208,7 @@ const teksPeran=u=>peranOf(u).map(r=>(cariPeran(r)||{}).nama||r).join(', ')||'Ta
 function akunPetugas(p,users){
   const dasar=(p.nip||String(p.nama).split(/[\s,]+/).filter(w=>w&&!/^dr\.?$/i.test(w))[0]||'petugas').toLowerCase().replace(/[^a-z0-9]/g,'')||'petugas';
   let un=dasar,i=2;while(users.some(u=>u.username.toLowerCase()===un))un=dasar+i++;
-  return{id:'u_pt_'+p.id,nama:p.nama,username:un,password:PW_PETUGAS,peran:['petugas'],petugasId:p.id,aktif:p.aktif!==false,gantiSandi:true};
+  return{id:'u_pt_'+p.id,nama:p.nama,username:un,password:p.nip||PW_PETUGAS,peran:['petugas'],petugasId:p.id,aktif:p.aktif!==false,gantiSandi:true};
 }
 const akunDariPetugas=(id,users=DB.users)=>users.find(u=>u.petugasId===id);
 function lengkapiAkunPetugas(d){d.petugas.forEach(p=>{if(!akunDariPetugas(p.id,d.users))d.users.push(akunPetugas(p,d.users));});}
@@ -1217,7 +1218,7 @@ const JARAK={dekat:'Kurang dari 4 mil (transport lokal)',jauh:'4 mil atau lebih 
 const PILIH_JARAK=[['dekat','Kurang dari 4 mil'],['jauh','4 mil atau lebih']];
 const REKENING_AWAL={nama:'RPL 048 PS BKK UTK AKOMODASI PEMERINTAH',nomor:'2015856303',bank:'BNI'};
 function migrasi(d){
-  const v=d.v||1;if(v>=17)return false;
+  const v=d.v||1;if(v>=18)return false;
   if(v<10){
   if(v<2){
     d.users.forEach(u=>{if(u.role==='user')u.role='pegawai';});
@@ -1267,7 +1268,12 @@ function migrasi(d){
   // Versi 17: peran Keuangan (dulu Validator keuangan) menyalurkan dana; hak laporan & salur
   {const pv=(d.settings.peran||[]).find(p=>p.id==='validator');if(pv&&pv.nama==='Validator keuangan'){const a=peranAwal().find(p=>p.id==='validator');pv.nama=a.nama;pv.ket=a.ket;}
    const P=d.settings.permsPeran;if(P){P.validator=P.validator||{};if(P.validator.laporan===undefined)P.validator.laporan=true;if(P.validator.salur===undefined)P.validator.salur=true;P.pimpinan=P.pimpinan||{};if(P.pimpinan.laporan===undefined)P.pimpinan.laporan=true;}}
-  d.v=17;return true;
+  // Versi 18: pegawai belum lengkap diisi data contoh; username & sandi bawaan akun pegawai = NIP
+  PETUGAS_AWAL.forEach(([,nip,pangkat,jabatan,key,contoh])=>{if(!contoh)return;const p=d.petugas.find(x=>x.id==='u_'+key);if(p&&!p.nip&&!d.petugas.some(x=>x.nip===nip)){p.nip=nip;if(!p.pangkat)p.pangkat=pangkat;if(!p.jabatan)p.jabatan=jabatan;p.contoh=true;}});
+  d.users.forEach(u=>{const p=u.petugasId&&d.petugas.find(x=>x.id===u.petugasId);if(!p||!p.nip)return;
+    if(u.username!==p.nip&&/^[a-z]+\d*$/.test(u.username)&&!d.users.some(o=>o!==u&&o.username===p.nip))u.username=p.nip;
+    if(u.password===PW_PETUGAS){u.password=p.nip;u.gantiSandi=true;}});
+  d.v=18;return true;
 }
 async function bersihMigrasi(){for(const f of migrasi.berkas||[])await store.del('files',f);migrasi.berkas=[];}
 const BANK_AWAL='Bank Mandiri|Bank Rakyat Indonesia (BRI)|Bank Negara Indonesia (BNI)|Bank Central Asia (BCA)|Bank Syariah Indonesia (BSI)|Bank Tabungan Negara (BTN)|Bank Kaltimtara|Bank Kaltimtara Syariah|Bank Aceh Syariah|Bank Banten|Bank Bengkulu|Bank BJB|Bank BPD Bali|Bank BPD DIY|Bank BPD DIY Syariah|Bank BRK Syariah|Bank BSG|Bank Jakarta|Bank Jakarta Syariah|Bank Jambi|Bank Jambi Syariah|Bank Jateng|Bank Jateng Syariah|Bank Jatim|Bank Jatim Syariah|Bank Kalbar|Bank Kalbar Syariah|Bank Kalsel|Bank Kalsel Syariah|Bank Kalteng|Bank Lampung|Bank Maluku Malut|Bank Nagari|Bank Nagari Syariah|Bank NTB Syariah|Bank NTT|Bank Papua|Bank Sulselbar|Bank Sulselbar Syariah|Bank Sulteng|Bank Sultra|Bank Sumsel Babel|Bank Sumsel Babel Syariah|Bank Sumut|Bank Sumut Syariah|Bank Aladin Syariah|Bank Allo Indonesia|Bank Amar Indonesia|Bank ANZ Indonesia|Bank Artha Graha Internasional|Bank BCA Syariah|Bank BJB Syariah|Bank BNP Paribas Indonesia|Bank BTPN Syariah|Bank Bumi Arta|Bank Capital Indonesia|Bank CCB Indonesia|Bank CIMB Niaga|Bank CIMB Niaga Syariah|Bank CTBC Indonesia|Bank Danamon Indonesia|Bank Danamon Syariah|Bank DBS Indonesia|Bank Digital BCA (blu)|Bank Ganesha|Bank Hana Indonesia|Bank Hibank Indonesia|Bank HSBC Indonesia|Bank IBK Indonesia|Bank ICBC Indonesia|Bank Ina Perdana|Bank Index Selindo|Bank J Trust Indonesia|Bank Jago|Bank Jago Syariah|Bank Kasikorn Indonesia|Bank KB Indonesia|Bank KB Syariah|Bank Krom Indonesia|Bank Mandiri Taspen|Bank Mayapada Internasional|Bank Maybank Indonesia|Bank Maybank Syariah Indonesia|Bank Mega|Bank Mega Syariah|Bank Mestika Dharma|Bank Mizuho Indonesia|Bank MNC Internasional|Bank Muamalat Indonesia|Bank Multiarta Sentosa|Bank Nano Syariah|Bank Nationalnobu|Bank Neo Commerce|Bank OCBC Indonesia|Bank OCBC Syariah Indonesia|Bank of America|Bank of China|Bank of India Indonesia|Bank Oke Indonesia|Bank Panin|Bank Panin Dubai Syariah|Bank Permata|Bank Permata Syariah|Bank QNB Indonesia|Bank Raya Indonesia|Bank Resona Perdania|Bank Sahabat Sampoerna|Bank Saqu Indonesia|Bank SBI Indonesia|Bank Seabank Indonesia|Bank Shinhan Indonesia|Bank Sinarmas|Bank SMBC Indonesia|Bank Superbank Indonesia|Bank Syariah Nasional|Bank UOB Indonesia|Bank Victoria Internasional|Bank Woori Saudara|Citibank|Deutsche Bank|JPMorgan Chase Bank|MUFG Bank|Standard Chartered Bank'.split('|');
@@ -1281,7 +1287,7 @@ function seedState(){
     return{id:'ag'+i,nama,siup,email,telp,alamat,provinsi:x[1]?x[0]:PROV[kab],kab:x[1]||KAB[kab],ket:ket==='-'||ket==='---'?'':ket,
       tgl:`20${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`,aktif:true};
   });
-  const p=(nama,nip,pangkat,jabatan,key)=>({id:'u_'+key,nama,nip,pangkat,jabatan,wilker:'',aktif:true});
+  const p=(nama,nip,pangkat,jabatan,key,contoh)=>({id:'u_'+key,nama,nip,pangkat,jabatan,wilker:'',aktif:true,...(contoh?{contoh:true}:{})});
   const users=[{id:'u_admin',nama:'Admin Satker',username:'admin',password:'admin123',peran:['admin'],aktif:true}];
   const petugas=PETUGAS_AWAL.map(x=>p(...x));
   const ag=e=>agen.find(a=>a.email===e).id;
@@ -1290,7 +1296,7 @@ function seedState(){
   // Akun agen contoh dan satu permohonan baru untuk peragaan
   const agDemo=agen.find(a=>a.email==='herina.puspita@gmail.com');if(agDemo)agDemo.akun={password:'agen123',status:'aktif',daftar:Date.now()};
   const permohonan=agDemo?[{id:'pm1',agenId:agDemo.id,agenSurat:'PT. BNE SAMUDERA AGENSI',noSurat:'21 / XI /BNE-TRK/OPS/2026',tglSurat:'2026-11-03',hal:HAL_PERMOHONAN,kapal:'TB. SAMUDERA JAYA',gt:'210',posisi:'REDE TARAKAN',tanggal:'2026-11-08',wilker:'malundung',catatan:'',fileId:null,status:'baru',dibuat:Date.now()}]:[];
-  return{v:17,permohonan,monev:[],
+  return{v:18,permohonan,monev:[],
     settings:{appName:NAMA_APP,appSub:'BKK Kelas I Tarakan',appLogo:null,
       satker:'BKK Kelas I Tarakan',
       rekening:{...REKENING_AWAL},bank:[...BANK_AWAL],tarif:0,tarifLuar:TARIF_LUAR_AWAL,batas:'3 x 24 jam',teksTagihan:TEKS_TAGIHAN,
@@ -2401,6 +2407,15 @@ function sortSimpan(t){
   scrollTo(0,y);
 }
 const ui={surat:{q:'',jenis:'',page:1},setoran:{q:'',status:'',page:1},agen:{q:'',kab:'',page:1},pegawai:{q:'',peran:'',wilker:''},pick:[],riwayat:{q:''}};
+/* Menu utama: akun berperan lebih dari satu mendapat sekat per peran (Umum, lalu tiap peran sesuai haknya) */
+const NAV_HAK={surat:['st.create'],permohonan:['st.create'],setoran:['validasi','export'],keuangan:['laporan','salur'],monev:['monev']};
+function navUtama(it,link,need){
+  const hit=n=>link(n,n[0]==='dash'?need:n[0]==='permohonan'?permohonanBaru().length:0),pr=peranOf(ME);
+  if(pr.length<2)return it.map(hit).join('');
+  const P=DB.settings.permsPeran||{},urut=[...pr.filter(r=>r!=='admin'),...pr.filter(r=>r==='admin')],pakai=new Set(),bag=[];
+  urut.forEach(r=>{const l=it.filter(n=>NAV_HAK[n[0]]&&!pakai.has(n[0])&&NAV_HAK[n[0]].some(k=>r==='admin'||!!(P[r]||{})[k]));l.forEach(n=>pakai.add(n[0]));if(l.length)bag.push([(cariPeran(r)||{}).nama||r,l]);});
+  return '<div class="nav-h">Umum</div>'+it.filter(n=>!pakai.has(n[0])).map(hit).join('')+bag.map(([j,l])=>'<div class="nav-h">'+esc(j)+'</div>'+l.map(hit).join('')).join('');
+}
 const NAV_SATKER=[['dash','Beranda','home'],['surat','Surat Tugas','file'],['permohonan','Permohonan Agen','send'],['setoran','Penerimaan','wallet'],['keuangan','Keuangan','db'],['monev','Monev SKI','check'],['verifikasi','Scan QR','qr']];
 const NAV_SET=[
   ['set/pegawai','Pegawai & Akun','users','set.pegawai','Data pegawai, akun masuk, dan peran','m'],
@@ -2469,7 +2484,7 @@ function renderShell(title,html,back,after){
   const grup=(judul,kode)=>{const l=sets.filter(n=>n[5]===kode);return l.length?`<div class="nav-h">${judul}</div>${l.map(n=>link(n)).join('')}`:'';};
   const peranTeks=teksPeran(ME);
   const side=`<aside class="side"><a class="brand" href="#/" title="${S.appName===NAMA_APP?KEPANJANGAN_APP:''}"><img src="${appLogo()}" alt=""><span class="grow"><b>${esc(S.appName)}</b><small>${esc(S.appSub)}</small></span></a>
-    <nav class="nav" aria-label="Menu utama">${it.map((n,i)=>link(n,i===0?need:n[0]==='permohonan'?permohonanBaru().length:0)).join('')}${grup('Manajemen','m')}${grup('Pengaturan','p')}</nav>
+    <nav class="nav" aria-label="Menu utama">${navUtama(it,link,need)}${grup('Manajemen','m')}${grup('Pengaturan','p')}</nav>
     <div class="side-foot"><a class="me" href="#/akun"><span class="ava">${esc(initials(ME.nama))}</span><span class="grow"><b>${esc(ME.nama)}</b><span class="small muted">${peranTeks}</span></span></a><button class="btn ghost icon" data-act="logout" aria-label="Keluar" title="Keluar">${ic('logout')}</button></div></aside>`;
   const bn=[['dash','Beranda','home',need],['surat','Surat','file'],['verifikasi','Scan QR','qr',0,'fab fab-qr'],['setoran','Setoran','wallet'],sets.length?['pengaturan','Atur','cog']:['akun','Akun','user']];
   const onKey=k=>k==='surat'?h==='surat'||(/^surat\//.test(h)&&h!=='surat/baru'):k==='pengaturan'?h==='pengaturan'||h.startsWith('set/'):h===k;
@@ -2490,7 +2505,7 @@ function renderLogin(){
     <h1>${esc(S.appName)}</h1><p>${S.appName===NAMA_APP?KEPANJANGAN_APP:'Rekening Pemerintah Lainnya untuk biaya transportasi pemeriksaan kapal'}, ${esc(S.appSub)}.</p>
     <ul class="login-wk">${WILKER.map(w=>`<li>${esc(w.nama)}</li>`).join('')}</ul>
   </section><main class="login-main"><form class="login-form" data-form="login" novalidate>
-    <div><h2>Masuk</h2><p class="muted">Pegawai masuk dengan NIP, agen pelayaran dengan email akun agen.</p></div>
+    <div><h2>Masuk</h2><p class="muted">Pegawai masuk dengan NIP (kata sandi awal juga NIP), agen pelayaran dengan email akun agen.</p></div>
     ${field('Username','login','',{req:1,ac:'username'})}
     ${field('Kata sandi','password','',{req:1,type:'password',ac:'current-password'})}
     <button class="btn pri block">Masuk</button>
@@ -2498,7 +2513,7 @@ function renderLogin(){
     <a class="btn block" href="#/verifikasi" style="margin-top:10px">${ic('qr')} Scan / upload QR surat pernyataan</a>
     <div class="demo"><div class="lbl">Akun contoh prototipe</div><div class="wrap-row mt2">
       <button type="button" class="btn sm" data-act="demoLogin" data-l="admin" data-p="admin123">Admin satker</button>
-      ${(p=>p?`<button type="button" class="btn sm" data-act="demoLogin" data-l="${esc(p.username)}" data-p="${PW_PETUGAS}">Petugas ${esc(p.nama.split(',')[0])}</button>`:'')((l=>{const urut=DB.st.flatMap(s=>s.petugas);return l.filter(u=>urut.includes(u.petugasId)).sort((x,y)=>urut.indexOf(x.petugasId)-urut.indexOf(y.petugasId))[0]||l[0];})(DB.users.filter(u=>peranOf(u).includes('petugas')&&u.petugasId&&u.aktif&&u.password===PW_PETUGAS)))}
+      ${(p=>p?`<button type="button" class="btn sm" data-act="demoLogin" data-l="${esc(p.username)}" data-p="${esc(p.password)}">Petugas ${esc(p.nama.split(',')[0])}</button>`:'')((l=>{const urut=DB.st.flatMap(s=>s.petugas);return l.filter(u=>urut.includes(u.petugasId)).sort((x,y)=>urut.indexOf(x.petugasId)-urut.indexOf(y.petugasId))[0]||l[0];})(DB.users.filter(u=>peranOf(u).includes('petugas')&&u.petugasId&&u.aktif&&u.password===(petugasOf(u.petugasId)||{}).nip)))}
       ${(a=>a?`<button type="button" class="btn sm" data-act="demoLogin" data-l="${esc(a.email)}" data-p="agen123">Agen ${esc(a.nama.replace(/^PT\.?\s*/i,'').split(' ').slice(0,2).join(' '))}</button>`:'')(DB.agen.find(a=>agenAkunAktif(a)&&a.akun.password==='agen123'))}
     </div></div></form></main></div>`;
 }
@@ -3258,7 +3273,7 @@ function renderPegawaiList(){
     return !q||[x.nama,x.p&&x.p.nip,x.p&&x.p.jabatan,x.u&&x.u.username].join(' ').toLowerCase().includes(q);}));
   const tagPeran=u=>!u?'<span class="tag">Tanpa akun</span>':peranOf(u).length?peranTupel().filter(r=>peranOf(u).includes(r[0])).map(r=>`<span class="tag ${r[2]}">${r[1]}</span>`).join(' '):'<span class="tag">Tanpa peran</span>';
   $('#list').innerHTML=rows.length?`${sortBar('pegawai')}<div class="tblwrap"><table class="tbl"><thead><tr>${thSort('pegawai','nama')}${thSort('pegawai','jabatan')}${thSort('pegawai','peran')}${thSort('pegawai','username')}${thSort('pegawai','status')}</tr></thead><tbody>${rows.map(x=>`<tr class="click" data-act="pegawaiForm" ${x.p?`data-p="${x.p.id}"`:`data-u="${x.u.id}"`}>
-    <td class="hd-cell"><span class="who"><span class="ava">${esc(initials(x.nama))}</span><span class="grow"><span class="strong">${esc(x.nama)}</span><div class="small muted">${x.p?esc(x.p.nip||'Tanpa NIP'):x.u.bersama?'Akun wilker bersama (lama)':'Akun sistem'}</div></span></span></td>
+    <td class="hd-cell"><span class="who"><span class="ava">${esc(initials(x.nama))}</span><span class="grow"><span class="strong">${esc(x.nama)}</span><div class="small muted">${x.p&&x.p.contoh?'<span class="tag warn">Data contoh</span> ':''}${x.p?esc(x.p.nip||'Tanpa NIP'):x.u.bersama?'Akun wilker bersama (lama)':'Akun sistem'}</div></span></span></td>
     <td data-l="Jabatan"><span>${x.p?esc(x.p.jabatan||'-'):'-'}</span></td>
     <td data-l="Peran"><span class="wrap-row">${tagPeran(x.u)}</span></td>
     <td data-l="Username"><span>${x.u?esc(x.u.username):'-'}</span></td>
@@ -3282,7 +3297,7 @@ function pegawaiModal(p,u){
     ${sistem?'<input type="hidden" name="akun" value="on">':`<label class="row">${switchEl('name="akun" data-change="pgAkun"',!!a||!p,self)} Punya akun untuk masuk aplikasi</label>${self?'<input type="hidden" name="akun" value="on">':''}`}
     <div id="akun-isi" class="stack mt2" ${sistem||a||!p?'':'hidden'}><div class="grid2">
       ${field('Username','username',a?a.username:'',{ac:'off',ph:'Kosong = NIP',hint:'Pegawai masuk dengan username ini.'})}
-      ${field('Kata sandi','password','',{ac:'new-password',ph:a?'Kosongkan jika tidak diubah':'Kosong = '+PW_PETUGAS,hint:'Sandi yang diatur admin wajib diganti pemiliknya.'})}</div>
+      ${field('Kata sandi','password','',{ac:'new-password',ph:a?'Kosongkan jika tidak diubah':'Kosong = NIP',hint:'Sandi yang diatur admin wajib diganti pemiliknya.'})}</div>
       <div class="peran-daftar"><span class="lbl">Peran</span>${sistem&&!isAdmin()?'':peranBaris}</div>
       <label class="row">${switchEl('name="aktifAkun"',a?a.aktif:true,self)} Akun aktif</label>${self?'<input type="hidden" name="aktifAkun" value="on">':''}
     </div>`,
@@ -3678,13 +3693,13 @@ const forms={
     }
     // Semua valid: simpan
     let orang=p;
-    if(d){if(p)Object.assign(p,d);else{orang={id:'p'+uid(),...d};DB.petugas.push(orang);}}
+    if(d){if(p){Object.assign(p,d);delete p.contoh;}else{orang={id:'p'+uid(),...d};DB.petugas.push(orang);}}
     if(akunBaru){const {pw,...isi}=akunBaru;
       if(a){Object.assign(a,isi);if(pw){a.password=pw;if(self)delete a.gantiSandi;else a.gantiSandi=true;}}
-      else{a={id:'u_pt_'+orang.id,...isi,password:pw||PW_PETUGAS,petugasId:orang.id,gantiSandi:true};DB.users.push(a);}
+      else{a={id:'u_pt_'+orang.id,...isi,password:pw||orang.nip||PW_PETUGAS,petugasId:orang.id,gantiSandi:true};DB.users.push(a);}
       if(self)Object.assign(ME,a);
     }else if(a&&!sistem)DB.users=DB.users.filter(u=>u!==a);
-    closeModal();save();route();toast(akunBaru&&!g('uid')?`Tersimpan. Akun masuk: ${a.username}, sandi ${akunBaru.pw?'sesuai isian':PW_PETUGAS}`:'Data pegawai disimpan');
+    closeModal();save();route();toast(akunBaru&&!g('uid')?`Tersimpan. Akun masuk: ${a.username}, sandi ${akunBaru.pw?'sesuai isian':orang&&orang.nip?'sama dengan NIP':PW_PETUGAS}`:'Data pegawai disimpan');
   },
   pejabat(fd){
     for(const p of DB.settings.pejabat){p.nama=String(fd.get('nama_'+p.id)).trim();p.nip=String(fd.get('nip_'+p.id)).trim();p.j1=String(fd.get('j1_'+p.id)).trim();p.j2=String(fd.get('j2_'+p.id)).trim();}
