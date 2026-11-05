@@ -2739,7 +2739,7 @@ function renderAgenPortal(h){
 function vAgenBeranda(){
   const daftar=[...permohonanAgen().filter(p=>!p.stId).map(p=>({t:p.dibuat,p})),...stAgen().map(s=>({t:s.dibuat||0,s}))].sort((x,y)=>y.t-x.t);
   const baris=x=>{const L=langkahAgen(x.s,x.p),kini=L.find(l=>l[1]==='now'||l[1]==='bad'),nm=x.s?namaKapal(x.s):`${x.p.kapal} (GT.${x.p.gt})`,tg=x.s?x.s.tanggal:x.p.tanggal;
-    return `<a class="card agen-item" href="#/a/${x.s?'s/'+x.s.id:'p/'+x.p.id}"><div class="row"><span class="grow"><b class="strong">${esc(nm)}</b><span class="small muted d-blok">${esc(x.s?x.s.posisi:x.p.posisi)} | ${tglID(tg)}</span></span><span class="tag ${kini&&kini[1]==='bad'?'bad':kini?'warn':'ok'}">${kini?kini[0]:'Selesai'}</span></div>${progresHtml(L)}</a>`;};
+    return `<a class="card agen-item" href="#/a/${x.s?'s/'+x.s.id:'p/'+x.p.id}"><div class="row"><span class="grow"><b class="strong">${esc(nm)}</b><span class="small muted d-blok">${esc(x.s?x.s.posisi:x.p.posisi)} | ${tglID(tg)}</span></span><span class="tag ${kini&&kini[1]==='bad'?'bad':kini?'warn':'ok'}">${!kini?'Selesai':kini[1]==='bad'?kini[0]:'Menunggu '+kini[0].charAt(0).toLowerCase()+kini[0].slice(1)}</span></div>${progresHtml(L)}</a>`;};
   return `<div class="agen-aksi"><a class="btn pri" href="#/a/baru">${ic('plus')}<span>Ajukan permohonan pemeriksaan</span></a></div>
   ${daftar.length?`<div class="stack">${daftar.map(baris).join('')}</div>`:`<div class="card empty">Belum ada permohonan. Ajukan permohonan pemeriksaan kapal dengan mengunggah surat permohonan Anda.</div>`}`;
 }
@@ -3269,9 +3269,9 @@ const forms={
     const g=k=>String(fd.get(k)||'').trim(),file=fd.get('file');
     const need=[['agenSurat','Nama perusahaan'],['noSurat','Nomor surat'],['tglSurat','Tanggal surat'],['hal','Hal surat'],['kapal','Nama kapal'],['gt','Tonase (GT)'],['posisi','Posisi kapal'],['tanggal','Rencana tanggal pemeriksaan']];
     for(const[k,l]of need)if(!g(k))return toast(l+' wajib diisi','bad');
-    if(!/^\d+([.,]\d+)?$/.test(g('gt')))return toast('Tonase (GT) harus berupa angka','bad');
+    if(!/^\d{1,3}(\.?\d{3})*(,\d+)?$/.test(g('gt')))return toast('Tonase (GT) harus berupa angka, misalnya 1.250 atau 36,96','bad');
     if(!checkUpload(file,'Surat permohonan'))return;
-    const p={id:'pm'+uid(),agenId:ME.id,agenSurat:g('agenSurat'),noSurat:g('noSurat'),tglSurat:g('tglSurat'),hal:g('hal'),kapal:g('kapal').toUpperCase(),gt:g('gt').replace('.',','),posisi:g('posisi').toUpperCase(),tanggal:g('tanggal'),wilker:g('wilker'),catatan:g('catatan'),fileId:await saveFile(file),status:'baru',dibuat:Date.now()};
+    const p={id:'pm'+uid(),agenId:ME.id,agenSurat:g('agenSurat'),noSurat:g('noSurat'),tglSurat:g('tglSurat'),hal:g('hal'),kapal:g('kapal').toUpperCase(),gt:g('gt').replace(/\./g,''),posisi:g('posisi').toUpperCase(),tanggal:g('tanggal'),wilker:g('wilker'),catatan:g('catatan'),fileId:await saveFile(file),status:'baru',dibuat:Date.now()};
     (DB.permohonan=DB.permohonan||[]).push(p);save();location.hash='#/a/p/'+p.id;toast('Permohonan terkirim. Pantau prosesnya di halaman ini.');
   },
   async spdCap(fd,f){

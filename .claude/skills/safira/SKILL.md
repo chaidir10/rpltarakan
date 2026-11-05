@@ -32,8 +32,8 @@ Repo publik: https://github.com/chaidir10/rpltarakan (cabang `main`). Bahasa ant
 | Jenis pemeriksaan | `const JENIS=`, `kunciJenis`, `urutJenis` |
 | Wilker (5) | `const WILKER=` (akun wilker bersama sudah tidak dipakai) |
 | Pegawai bawaan (30 nama) & akun | `PETUGAS_AWAL`, `akunPetugas`, `lengkapiAkunPetugas`, `akunDariPetugas`, `PW_PETUGAS` |
-| Migrasi data | `function migrasi(d)` (versi data sekarang **14**) |
-| Data awal | `function seedState()` (harus `v:14`) |
+| Migrasi data | `function migrasi(d)` (versi data sekarang **15**) |
+| Data awal | `function seedState()` (harus `v:15`) |
 | Sesi, peran, hak akses | `loadSession`, `PERAN_BAWAAN`, `daftarPeran`, `punya`, `isAdmin`, `lihatSemua`, `can`, `stSaya`, `bolehLihat`, `milikSaya`, `terbatas`, `sayaPetugas` |
 | Status surat | `const STAGE=`, `function stage(s)`, `tanpaTagihan`, `perluSatker` |
 | Jarak & transport | `JARAK`, `PILIH_JARAK`, `jarakST`, `pilihJarak`, `MODA`, `barisTagihan`, `aturBarisTagihan` |
@@ -43,6 +43,8 @@ Repo publik: https://github.com/chaidir10/rpltarakan (cabang `main`). Bahasa ant
 | Pratinjau HTML surat | `docHtml`, `pHtml`, `xHtml`, `fitSheets` |
 | PDF (penulis sendiri, font base-14) | `pdfNominatif`, `pdfPernyataan`, `lebarTeks`, `bungkus` |
 | QR tanda tangan & keaslian | `KUNCI_QR`, `kodeQrTtd`, `ttdData`, `kanvasQr`, `vVerif`, `cariQrSurat`, `cariQrPdf` |
+| Portal agen (login agen, permohonan, pelacakan, SPD bercap) | `isAgen`, `renderAgenPortal`, `vAgenBeranda`, `vAgenPermohonanForm`, `vAgenST`, `langkahAgen`, `progresHtml`, `renderDaftarAgen`, `forms.daftarAgen/permohonan/spdCap/sandiAgen` |
+| Permohonan agen (sisi satker) | `DB.permohonan`, `vPermohonan`, `permohonanModal`, `vAgenMenunggu`, `kartuDokAgen`, rute `#/permohonan`, `#/surat/dari/<id>` |
 | Router & kerangka | `function route()`, `renderShell`, `NAV_SATKER`, `NAV_SET`, `renderLogin`, `doLogin` |
 | Aksi klik & form | objek `actions` (atribut `data-act`), `forms` (`data-form`), handler `data-change`/`data-input` |
 
@@ -56,14 +58,18 @@ Pola UI: delegasi event. Tombol memakai `data-act="namaAksi"`, form `data-form="
 - **Akun contoh**: `admin`/`admin123`; pegawai masuk dengan NIP (atau nama depan bila tanpa NIP) / `petugas123`. Akun dengan sandi bawaan diberi `gantiSandi` dan melihat pengingat sampai menggantinya. Akun wilker bersama lama (`malundung`, `berau`, ...) sudah dinonaktifkan (`bersama:true`); jangan dipakai untuk uji, pakai `[data-l=admin]` atau NIP.
 - Pegawai baru otomatis punya akun (sakelar "Punya akun" menyala, peran Petugas); admin bisa mematikannya. "Bisa ditugaskan" (muncul di pilihan petugas surat) terpisah dari "Akun aktif" (boleh masuk).
 - Harus selalu ada minimal satu admin aktif; admin tidak bisa mencabut peran admin/akun dirinya sendiri.
-- **Agen**: tanpa login, lewat tautan WhatsApp `#/t/<token>`.
+- **Agen** punya dua jalan: (1) tautan WhatsApp tanpa login `#/t/<token>` (tetap berlaku), (2) **akun agen** (sejak data v15). Agen **mendaftar sendiri** di `#/daftar` (nama perusahaan, email, WhatsApp, kab/kota, sandi) lalu **disetujui admin** di Data Agen (`vAgenMenunggu`, aksi `setujuiAgen`/`tolakAgen`). Akun disimpan di `agen.akun = {password, status:menunggu|aktif|ditolak, daftar, alasan}`; username = email. Sesi agen `{type:'agen'}` dan `ME._type==='agen'` (`isAgen()`); agen hanya melihat surat dengan `s.agenId===ME.id` dan permohonannya sendiri. Akun contoh: email agen PT. BNE SAMUDERA AGENSI / `agen123`.
+- **Portal agen** (`#/a`, `renderAgenPortal`): beranda daftar permohonan & surat dengan progress bar; `#/a/baru` ajukan permohonan (nomor & tanggal surat, hal, kapal, GT, posisi, rencana tanggal, wilker opsional, **unggah surat permohonan wajib**, catatan); `#/a/p/<id>` pelacakan permohonan (bisa dibatalkan selama `baru`); `#/a/s/<id>` pelacakan surat tugas + aksi lama (`vAgenKapal`: pilih transport, invoice, bukti bayar, surat pernyataan) + dokumen: unduh surat tugas & SPD hasil TTE Srikandi (`s.fileST`) dan **unggah SPD bertanda tangan & cap basah agen** (`s.spdCap`, hanya jarak >= 4 mil); `#/a/akun` ganti sandi.
+- **Langkah pelacakan** (`langkahAgen`): permohonan dikirim -> diterima & diproses satker (atau ditolak + alasan) -> surat tugas dibuat -> disahkan TTE Srikandi -> konfirmasi transportasi -> SPD dicap agen (jauh) -> tagihan terbit (atau dilewati bila dijemput & dekat) -> pembayaran & validasi -> selesai. Persen = langkah selesai / langkah yang berlaku.
+- **Sisi satker**: menu **Permohonan Agen** (`#/permohonan`, hitungan permohonan baru) -> detail (lihat berkas) -> **Proses jadi surat tugas** membuka form surat yang sudah terisi dari permohonan (`#/surat/dari/<id>`, `vSuratForm(null,pm)`); saat disimpan permohonan menjadi `diproses`, `pm.stId` dan `s.permohonanId` terisi. Bisa juga **Tolak** dengan alasan. Detail surat menampilkan kartu **Dokumen dari agen** (surat permohonan, status SPD bercap).
+- GT dari agen memakai titik ribuan dan koma desimal (`1.250` -> `1250`, `36,96`).
 - Rute: `#/dash`, `#/surat`, `#/surat/baru`, `#/surat/<id>`, `#/surat/ubah/<id>`, `#/setoran`, `#/verifikasi` (Scan QR, juga publik), `#/akun`, `#/pengaturan`, `#/set/{pegawai,agen,pejabat,kop,app,akses,data}`, `#/t/<token>`.
 
 ## Alur surat tugas
 
 1. Buat surat: jenis pemeriksaan (boleh kosong sampai simpan), jumlah petugas, **jarak sandar** (`dekat` < 4 mil / `jauh` >= 4 mil), agen, kapal, petugas, penandatangan.
 2. Unduh DOCX -> disahkan di **Srikandi** -> catat nomor + **wajib** unggah surat bertanda tangan (`catatST`).
-3. Agen membuka tautan, memilih dijemput (`jemput='ya'`) atau tidak.
+3. Agen membuka tautan atau portal agen, memilih dijemput (`jemput='ya'`) atau tidak. Surat bisa berawal dari **permohonan agen** (lihat Portal agen).
 4. Tagihan: `dekat`+dijemput = tanpa tagihan (stage `jemput`, terbit surat pernyataan PDF). Selain itu `perlu` tagihan.
    - < 4 mil: per petugas pilih cara transport `pribadi` (wajib struk bensin) atau `online` (wajib bukti pesan); disediakan agen = Rp0.
    - >= 4 mil: uang harian `tarifLuar` (430.000) per orang + penginapan diisi; transport at cost Rp0.
@@ -118,6 +124,9 @@ Berkas besar dan berbaris panjang (gambar base64), dan memakai CRLF.
 
 ## Hal yang masih terbuka
 
+- **Peran SKI** (validasi data dukung petugas + cetakan yang sama persis dengan lampiran) menunggu lampiran dari pemilik; belum dibuat.
+- Belum ada notifikasi WhatsApp/email otomatis ke agen saat status berubah (agen memantau di portal).
+
 - 21 petugas belum punya NIP/pangkat/jabatan (tercetak kosong di surat tugas, SPD, nominatif).
 - Nominatif di DOCX dibuat sebelum tagihan ada (penginapan "-"); bisa berbeda dengan tagihan akhir.
 - Baris II halaman belakang SPD mengikuti contoh ("Berangkat dari Tarakan, Ke tujuan"), belum dibalik.
@@ -137,4 +146,5 @@ Tambahkan satu baris per perubahan (terbaru di bawah): tanggal, commit, ringkasa
 - 2026-11-05 `2597126` SKILL.md ini dibuat.
 - 2026-11-05 `4124940` Model pengguna baru (data v13): menu tunggal **Pegawai & Akun**, peran jamak per akun, peran sebagai data (bisa ditambah di Hak Akses), hak per peran (`permsPeran`), lingkup data per peran, akun wilker bersama dinonaktifkan, impor/ekspor CSV pegawai, pengingat ganti sandi bawaan, minimal satu admin aktif. Uji baru `t53`.
 - 2026-11-05 `970c66c` Pegawai baru kembali otomatis punya akun; judul halaman di ponsel boleh dua baris (judul panjang seperti "Pegawai & Akun" tidak terpotong); migrasi data sangat lama (v<10) tanpa `perms` tidak lagi error. Uji lama (t5, t6, t7, t10, t13, t20, t25, t35, t36, t41, t42, t47, t50, t51, t52) disesuaikan ke model pegawai & peran.
-- 2026-11-05 (commit ini) Nama aplikasi resmi **SAFIRA** (data v14): judul tab, meta, halaman masuk (dengan kepanjangan), samping (kepanjangan saat disorot), catatan kaki surat pernyataan "aplikasi SAFIRA"; migrasi mengganti nama bawaan lama "RPL Kapal/RPL Tarakan" tanpa menimpa nama buatan admin. Folder skill diganti menjadi `.claude/skills/safira/`. Uji baru `t54`; uji memeriksa `DB.v===14`.
+- 2026-11-05 `39eefbb` Nama aplikasi resmi **SAFIRA** (data v14): judul tab, meta, halaman masuk (dengan kepanjangan), samping (kepanjangan saat disorot), catatan kaki surat pernyataan "aplikasi SAFIRA"; migrasi mengganti nama bawaan lama "RPL Kapal/RPL Tarakan" tanpa menimpa nama buatan admin. Folder skill diganti menjadi `.claude/skills/safira/`. Uji baru `t54`; uji memeriksa `DB.v===14`.
+- 2026-11-05 (commit ini) **Portal agen** (data v15): daftar mandiri + persetujuan admin, masuk dengan email, ajukan permohonan dengan unggah surat, progress bar pelacakan, unduh surat tugas & SPD TTE Srikandi, unggah SPD bertanda tangan & cap basah agen; sisi satker: menu Permohonan Agen, proses jadi surat tugas (form terisi otomatis) atau tolak, kartu Dokumen dari agen di detail surat. Uji baru `t55`; uji memeriksa `DB.v===15` dan 3 tombol masuk contoh.
