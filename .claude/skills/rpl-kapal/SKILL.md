@@ -52,6 +52,7 @@ Pola UI: delegasi event. Tombol memakai `data-act="namaAksi"`, form `data-form="
 - **Peran jamak per akun**: `user.peran = ['petugas','validator',...]` (tidak ada lagi `role`). Peran adalah **data** di `DB.settings.peran` (`{id,nama,warna,ket,lingkup,bawaan}`); admin bisa menambah/mengubah/menghapus peran tambahan di Hak Akses (`peranModal`, `forms.peran`). Bawaan: Petugas (lingkup `sendiri`), Validator keuangan, Pimpinan, Admin satker (lingkup `semua`). Pakai `daftarPeran()`, `cariPeran(id)`, `peranTupel()`, `peranOf(u)`, `teksPeran(u)`; jangan menulis daftar peran tetap di kode.
 - **Hak per peran**: `DB.settings.permsPeran[peran][fitur]` (fitur di `PERMS`). `can(fitur)` = admin, atau salah satu peran akun punya hak itu. Lingkup data: `lihatSemua()` (ada peran berlingkup `semua`) atau hanya surat yang dibuat/diikuti (`milikSaya`, `stSaya`, `bolehLihat`).
 - **Akun contoh**: `admin`/`admin123`; pegawai masuk dengan NIP (atau nama depan bila tanpa NIP) / `petugas123`. Akun dengan sandi bawaan diberi `gantiSandi` dan melihat pengingat sampai menggantinya. Akun wilker bersama lama (`malundung`, `berau`, ...) sudah dinonaktifkan (`bersama:true`); jangan dipakai untuk uji, pakai `[data-l=admin]` atau NIP.
+- Pegawai baru otomatis punya akun (sakelar "Punya akun" menyala, peran Petugas); admin bisa mematikannya. "Bisa ditugaskan" (muncul di pilihan petugas surat) terpisah dari "Akun aktif" (boleh masuk).
 - Harus selalu ada minimal satu admin aktif; admin tidak bisa mencabut peran admin/akun dirinya sendiri.
 - **Agen**: tanpa login, lewat tautan WhatsApp `#/t/<token>`.
 - Rute: `#/dash`, `#/surat`, `#/surat/baru`, `#/surat/<id>`, `#/surat/ubah/<id>`, `#/setoran`, `#/verifikasi` (Scan QR, juga publik), `#/akun`, `#/pengaturan`, `#/set/{pegawai,agen,pejabat,kop,app,akses,data}`, `#/t/<token>`.
@@ -110,6 +111,8 @@ Berkas besar dan berbaris panjang (gambar base64), dan memakai CRLF.
 - DOCX diperiksa dengan Word COM (`topdf.ps1`: buka DOCX, ekspor PDF, hitung halaman). PDF dilihat per halaman dengan `Windows.Data.Pdf` (skrip `pdf2png.ps1`; di PowerShell variabel tidak peka huruf besar, jangan pakai `$page` bersama `$Page`).
 - Selalu lihat tangkapan layar terang + gelap, desktop + ponsel, sebelum menyatakan selesai.
 - Uji lama yang diketahui usang: `t1` (mencari field `tarif` yang sudah dihapus), `t12` (mencari `#format-hint` yang dihapus atas permintaan). `t38` (pindai foto QR) sangat lambat; jalankan terpisah tanpa batas waktu ketat. Matikan sisa `msedge --headless` bila uji macet.
+- Untuk masuk di uji: `doLogin('admin','admin123')` atau tombol `[data-l=admin]`; pegawai `[data-l="198002202006041003"]` (NIP perlu tanda kutip di selektor CSS) atau `doLogin(NIP,'petugas123')`. Pegawai yang tidak ada di surat contoh: `ivan`. Admin wajib memilih wilker di form surat (`[name=wilker]`).
+- Uji utama model pengguna: `t53` (peran, hak, peran tambahan, migrasi v12->v13), `t6` (validasi pegawai, migrasi v4, tata letak), `t50` (petugas membuat surat sendiri), `t10` (tombol masuk cepat).
 
 ## Hal yang masih terbuka
 
@@ -117,7 +120,6 @@ Berkas besar dan berbaris panjang (gambar base64), dan memakai CRLF.
 - Nominatif di DOCX dibuat sebelum tagihan ada (penginapan "-"); bisa berbeda dengan tagihan akhir.
 - Baris II halaman belakang SPD mengikuti contoh ("Berangkat dari Tarakan, Ke tujuan"), belum dibalik.
 - Nama aplikasi "RPL Kapal" vs "RPL Tarakan" belum diputuskan; belum diuji di ponsel/printer/kamera nyata.
-- Uji lama yang masih memakai akun wilker bersama atau halaman `set/users`/`set/petugas` (t5, t6, t7, t10, t13, t16, dst.) sedang disesuaikan ke model pegawai & peran.
 
 ## Riwayat perubahan
 
@@ -131,4 +133,5 @@ Tambahkan satu baris per perubahan (terbaru di bawah): tanggal, commit, ringkasa
 - 2026-11-05 `1db9975` Kontrol kustom bertema menggantikan select/datalist/tanggal/berkas bawaan browser (commit oleh pemilik).
 - 2026-11-05 `05025c7` Daftar 30 petugas BKK Tarakan sebagai data bawaan (data v12).
 - 2026-11-05 `2597126` SKILL.md ini dibuat.
-- 2026-11-05 (commit ini) Model pengguna baru (data v13): menu tunggal **Pegawai & Akun**, peran jamak per akun, peran sebagai data (bisa ditambah di Hak Akses), hak per peran (`permsPeran`), lingkup data per peran, akun wilker bersama dinonaktifkan, impor/ekspor CSV pegawai, pengingat ganti sandi bawaan, minimal satu admin aktif. Uji baru `t53`; uji lama yang memakai akun wilker sedang disesuaikan.
+- 2026-11-05 `4124940` Model pengguna baru (data v13): menu tunggal **Pegawai & Akun**, peran jamak per akun, peran sebagai data (bisa ditambah di Hak Akses), hak per peran (`permsPeran`), lingkup data per peran, akun wilker bersama dinonaktifkan, impor/ekspor CSV pegawai, pengingat ganti sandi bawaan, minimal satu admin aktif. Uji baru `t53`.
+- 2026-11-05 (commit ini) Pegawai baru kembali otomatis punya akun; judul halaman di ponsel boleh dua baris (judul panjang seperti "Pegawai & Akun" tidak terpotong); migrasi data sangat lama (v<10) tanpa `perms` tidak lagi error. Uji lama (t5, t6, t7, t10, t13, t20, t25, t35, t36, t41, t42, t47, t50, t51, t52) disesuaikan ke model pegawai & peran.

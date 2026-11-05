@@ -550,7 +550,7 @@ a.stat:hover{border-color:var(--line2)}
   .shell{display:block;min-height:0}
   .side{display:none}
   .top{padding:calc(10px + env(safe-area-inset-top)) 14px 10px;background:var(--surface);border-bottom:1px solid var(--line)}
-  .top h1{font-size:17px;white-space:nowrap}
+  .top h1{font-size:17px;white-space:normal;line-height:1.2;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow-wrap:anywhere}
   .top .sub{display:none}
   .top:has(.page-act) a.mob[href="#/akun"]{display:none}
   .page-act .btn{padding:0;width:44px}
@@ -2800,8 +2800,8 @@ function pegawaiModal(p,u){
     <div class="field"><label for="f_pwk">Wilayah kerja asal</label><select class="inp" id="f_pwk" name="wilker"><option value="">Semua wilayah</option>${WILKER.map(w=>`<option value="${w.id}" ${v.wilker===w.id?'selected':''}>${esc(w.nama)}</option>`).join('')}</select><span class="hint">Terisi otomatis saat pegawai ini membuat surat.</span></div>
     <label class="row field-sw">${switchEl('name="tugas"',v.aktif)} Bisa ditugaskan di surat tugas</label></div>`}
     <h3 class="sub-h mt">Akun masuk</h3>
-    ${sistem?'<input type="hidden" name="akun" value="on">':`<label class="row">${switchEl('name="akun" data-change="pgAkun"',!!a,self)} Punya akun untuk masuk aplikasi</label>${self?'<input type="hidden" name="akun" value="on">':''}`}
-    <div id="akun-isi" class="stack mt2" ${sistem||a?'':'hidden'}><div class="grid2">
+    ${sistem?'<input type="hidden" name="akun" value="on">':`<label class="row">${switchEl('name="akun" data-change="pgAkun"',!!a||!p,self)} Punya akun untuk masuk aplikasi</label>${self?'<input type="hidden" name="akun" value="on">':''}`}
+    <div id="akun-isi" class="stack mt2" ${sistem||a||!p?'':'hidden'}><div class="grid2">
       ${field('Username','username',a?a.username:'',{ac:'off',ph:'Kosong = NIP',hint:'Pegawai masuk dengan username ini.'})}
       ${field('Kata sandi','password','',{ac:'new-password',ph:a?'Kosongkan jika tidak diubah':'Kosong = '+PW_PETUGAS,hint:'Sandi yang diatur admin wajib diganti pemiliknya.'})}</div>
       <div class="peran-daftar"><span class="lbl">Peran</span>${sistem&&!isAdmin()?'':peranBaris}</div>
