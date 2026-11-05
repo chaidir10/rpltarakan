@@ -11,6 +11,7 @@ Repo publik: https://github.com/chaidir10/rpltarakan (cabang `main`). Bahasa ant
 
 ## Aturan kerja dengan pemilik repo
 
+- **Wajib perbarui berkas ini setiap ada perubahan.** Setiap perubahan aplikasi (fitur, data/versi, aturan bisnis, cara uji) harus dicatat di SKILL.md ini pada commit yang sama: perbarui bagian terkait dan tambahkan satu baris di **Riwayat perubahan** (paling bawah). Berkas ini harus lengkap dan jelas agar sesi berikutnya tidak bingung.
 - **Auto push**: setelah perubahan diuji dan lulus, langsung commit + push ke `main` (pemilik sudah meminta). Akhiri pesan commit dengan baris `Co-Authored-By` sesuai pengingat sistem.
 - Pemilik kadang commit sendiri (mis. "rapikan titik", "baru"). Selalu cek `git log -3` dan `git status` sebelum commit; jangan menimpa kerja mereka.
 - **Bahaya editor basi**: VS Code pernah menyimpan tab lama sehingga `index.html` mundur belasan commit. Sebelum commit, pastikan fitur terbaru masih ada (mis. `grep -c "function kkSelect" index.html`). Bila tertimpa: simpan salinan, `git checkout <commit-terbaru> -- index.html`, commit pemulihan (jangan force push).
@@ -27,11 +28,11 @@ Repo publik: https://github.com/chaidir10/rpltarakan (cabang `main`). Bahasa ant
 | jsQR 1.4.0 (Apache-2.0), dimuat lewat `(0,eval)` | `id="lib-jsqr"`, `const jsqr=` |
 | Penyimpanan IndexedDB `rpl-bkk-tarakan` (store `kv`, `files`), sinkron antar-tab | `const store=`, `function save`, `flush`, `rpl-sync` |
 | Jenis pemeriksaan | `const JENIS=`, `kunciJenis`, `urutJenis` |
-| Wilker (5) | `const WILKER=`, `akunWilker` |
-| Petugas bawaan (30 nama) & akun petugas | `PETUGAS_AWAL`, `akunPetugas`, `lengkapiAkunPetugas`, `akunDariPetugas`, `PW_PETUGAS` |
-| Migrasi data | `function migrasi(d)` (versi data sekarang **12**) |
-| Data awal | `function seedState()` (harus `v:12`) |
-| Sesi, peran, hak akses | `loadSession`, `isAdmin`, `isPetugas`, `can`, `PERM_PETUGAS`, `stSaya`, `bolehLihat`, `milikSaya`, `terbatas` |
+| Wilker (5) | `const WILKER=` (akun wilker bersama sudah tidak dipakai) |
+| Pegawai bawaan (30 nama) & akun | `PETUGAS_AWAL`, `akunPetugas`, `lengkapiAkunPetugas`, `akunDariPetugas`, `PW_PETUGAS` |
+| Migrasi data | `function migrasi(d)` (versi data sekarang **13**) |
+| Data awal | `function seedState()` (harus `v:13`) |
+| Sesi, peran, hak akses | `loadSession`, `PERAN_BAWAAN`, `daftarPeran`, `punya`, `isAdmin`, `lihatSemua`, `can`, `stSaya`, `bolehLihat`, `milikSaya`, `terbatas`, `sayaPetugas` |
 | Status surat | `const STAGE=`, `function stage(s)`, `tanpaTagihan`, `perluSatker` |
 | Jarak & transport | `JARAK`, `PILIH_JARAK`, `jarakST`, `pilihJarak`, `MODA`, `barisTagihan`, `aturBarisTagihan` |
 | Kontrol kustom (select/tanggal/saran/berkas) | `Kontrol kustom`, `kkSelect`, `kkTanggal`, `kkSaran`, `kkBerkas`, `kkTerapkan` |
@@ -45,13 +46,15 @@ Repo publik: https://github.com/chaidir10/rpltarakan (cabang `main`). Bahasa ant
 
 Pola UI: delegasi event. Tombol memakai `data-act="namaAksi"`, form `data-form="nama"` + `novalidate` (validasi manual dengan `toast(...,'bad')`), perubahan input `data-change`/`data-input`. Render ulang lewat `route()`.
 
-## Peran & rute
+## Pengguna, peran & rute (data versi 13)
 
-- **Admin satker** (`admin`/`admin123`): semua data, semua pengaturan.
-- **User wilker** (`malundung`, `tanjungselor`, `berau`, `nunukan`, `sebatik` / `user123`): surat wilkernya; hak mengikuti `DB.settings.perms` (diatur admin di Hak Akses).
-- **Petugas** (username = NIP, atau nama depan bila tanpa NIP / `petugas123`): membuat surat sendiri dan memilih wilker di form; hanya melihat surat yang dibuat atau diikutinya; hak dibatasi `PERM_PETUGAS` (surat & tagihan saja).
+- **Satu orang satu catatan.** Data orang ada di `DB.petugas` (nama, NIP, pangkat, jabatan, wilker asal, `aktif` = bisa ditugaskan). Akun masuk (opsional) ada di `DB.users` dan terhubung lewat `petugasId` (`akunDariPetugas`). Keduanya dikelola dari satu menu **Pegawai & Akun** (`#/set/pegawai`, `vSetPegawai`, `pegawaiModal`, `forms.pegawai`, impor/ekspor CSV `imporPegawai`). Rute lama `set/users` dan `set/petugas` dialihkan ke sana.
+- **Peran jamak per akun**: `user.peran = ['petugas','validator',...]` (tidak ada lagi `role`). Peran adalah **data** di `DB.settings.peran` (`{id,nama,warna,ket,lingkup,bawaan}`); admin bisa menambah/mengubah/menghapus peran tambahan di Hak Akses (`peranModal`, `forms.peran`). Bawaan: Petugas (lingkup `sendiri`), Validator keuangan, Pimpinan, Admin satker (lingkup `semua`). Pakai `daftarPeran()`, `cariPeran(id)`, `peranTupel()`, `peranOf(u)`, `teksPeran(u)`; jangan menulis daftar peran tetap di kode.
+- **Hak per peran**: `DB.settings.permsPeran[peran][fitur]` (fitur di `PERMS`). `can(fitur)` = admin, atau salah satu peran akun punya hak itu. Lingkup data: `lihatSemua()` (ada peran berlingkup `semua`) atau hanya surat yang dibuat/diikuti (`milikSaya`, `stSaya`, `bolehLihat`).
+- **Akun contoh**: `admin`/`admin123`; pegawai masuk dengan NIP (atau nama depan bila tanpa NIP) / `petugas123`. Akun dengan sandi bawaan diberi `gantiSandi` dan melihat pengingat sampai menggantinya. Akun wilker bersama lama (`malundung`, `berau`, ...) sudah dinonaktifkan (`bersama:true`); jangan dipakai untuk uji, pakai `[data-l=admin]` atau NIP.
+- Harus selalu ada minimal satu admin aktif; admin tidak bisa mencabut peran admin/akun dirinya sendiri.
 - **Agen**: tanpa login, lewat tautan WhatsApp `#/t/<token>`.
-- Rute: `#/dash`, `#/surat`, `#/surat/baru`, `#/surat/<id>`, `#/surat/ubah/<id>`, `#/setoran`, `#/verifikasi` (Scan QR, juga publik), `#/akun`, `#/pengaturan`, `#/set/{users,petugas,agen,pejabat,kop,app,akses,data}`, `#/t/<token>`.
+- Rute: `#/dash`, `#/surat`, `#/surat/baru`, `#/surat/<id>`, `#/surat/ubah/<id>`, `#/setoran`, `#/verifikasi` (Scan QR, juga publik), `#/akun`, `#/pengaturan`, `#/set/{pegawai,agen,pejabat,kop,app,akses,data}`, `#/t/<token>`.
 
 ## Alur surat tugas
 
@@ -114,3 +117,18 @@ Berkas besar dan berbaris panjang (gambar base64), dan memakai CRLF.
 - Nominatif di DOCX dibuat sebelum tagihan ada (penginapan "-"); bisa berbeda dengan tagihan akhir.
 - Baris II halaman belakang SPD mengikuti contoh ("Berangkat dari Tarakan, Ke tujuan"), belum dibalik.
 - Nama aplikasi "RPL Kapal" vs "RPL Tarakan" belum diputuskan; belum diuji di ponsel/printer/kamera nyata.
+- Uji lama yang masih memakai akun wilker bersama atau halaman `set/users`/`set/petugas` (t5, t6, t7, t10, t13, t16, dst.) sedang disesuaikan ke model pegawai & peran.
+
+## Riwayat perubahan
+
+Tambahkan satu baris per perubahan (terbaru di bawah): tanggal, commit, ringkasan, dan dampak ke data/uji.
+
+- 2026-11-03 `7f32d14` Jarak hanya ditampilkan di jendela tagihan; cara transport per petugas dan klaim berbukti (`e763235`); unggah surat bertanda tangan wajib (`9cf7cdb`).
+- 2026-11-04 `6f617b3` Pemulihan setelah `index.html` tertimpa tab editor lama (`e320886`).
+- 2026-11-04 `c460dfe` Surat pernyataan: tanda tangan agen di kiri, petugas berjejer di kanan.
+- 2026-11-05 `8c48a40` Surat jarak >= 4 mil: DOCX ditambah SPD per petugas, halaman belakang SPD, nominatif mendatar (tag Srikandi).
+- 2026-11-05 `a602971` Akun petugas (username NIP, `petugas123`), petugas membuat surat sendiri dan memilih wilker (data v11); `bf9b564` label filter peran dipendekkan.
+- 2026-11-05 `1db9975` Kontrol kustom bertema menggantikan select/datalist/tanggal/berkas bawaan browser (commit oleh pemilik).
+- 2026-11-05 `05025c7` Daftar 30 petugas BKK Tarakan sebagai data bawaan (data v12).
+- 2026-11-05 `2597126` SKILL.md ini dibuat.
+- 2026-11-05 (commit ini) Model pengguna baru (data v13): menu tunggal **Pegawai & Akun**, peran jamak per akun, peran sebagai data (bisa ditambah di Hak Akses), hak per peran (`permsPeran`), lingkup data per peran, akun wilker bersama dinonaktifkan, impor/ekspor CSV pegawai, pengingat ganti sandi bawaan, minimal satu admin aktif. Uji baru `t53`; uji lama yang memakai akun wilker sedang disesuaikan.

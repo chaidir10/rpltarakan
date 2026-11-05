@@ -107,6 +107,17 @@ textarea.inp{min-height:90px;resize:vertical;line-height:1.5}
 input[type=file].inp{padding:6px}
 /* Kontrol kustom: pilihan, saran, tanggal, berkas */
 .kk{position:relative;display:block;min-width:0}
+.sub-h{font-size:14px;font-weight:650;margin:0 0 10px;color:var(--ink2)}
+.sub-h.mt{margin-top:22px;padding-top:16px;border-top:1px solid var(--line)}
+.field-sw{align-self:end;min-height:40px}
+.peran-daftar{display:grid;gap:8px}
+.peran-row{display:flex;gap:12px;align-items:flex-start;padding:10px 12px;border:1px solid var(--line);border-radius:var(--r2);cursor:pointer}
+.peran-row .hint{display:block;margin-top:2px}
+.peran-row:has(input:checked){border-color:var(--brand);background:var(--brand-soft)}
+.perm-tbl .center{text-align:center}
+.peran-ket{margin:0;padding:0 var(--gap) var(--gap);list-style:none;display:grid;gap:8px;font-size:14px;color:var(--ink2)}
+.peran-ket li{display:flex;gap:12px;align-items:center;padding:10px 12px;border:1px solid var(--line);border-radius:var(--r2)}
+.d-blok{display:block;margin-top:4px}
 .kk-asli{display:none!important}
 .kk-btn{display:flex;align-items:center;gap:8px;text-align:left;cursor:pointer;color:var(--ink);font:inherit;line-height:1.3}
 .kk-btn .kk-teks{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -323,7 +334,7 @@ a.stat:hover{border-color:var(--line2)}
 #petugas-list{max-height:calc(340px - var(--terpilih,0)*62px)}
 .perm-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:40px;padding:6px 20px}
 .perm-row{display:flex;align-items:center;justify-content:space-between;gap:14px;min-height:54px;padding:8px 0;border-bottom:1px solid var(--line);cursor:pointer}
-.switch{position:relative;width:40px;height:23px;flex:none}
+.switch{position:relative;display:inline-block;vertical-align:middle;width:40px;height:23px;flex:none}
 .switch input{opacity:0;position:absolute;inset:0;margin:0;width:100%;height:100%;cursor:pointer;z-index:1}
 .switch i{position:absolute;inset:0;border-radius:99px;background:var(--line2);transition:background .12s}
 .switch i::after{content:"";position:absolute;left:2px;top:2px;width:19px;height:19px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.25);transition:transform .12s}
@@ -1050,7 +1061,7 @@ function checkUpload(file,label){
 }
 
 /* ================= Data awal ================= */
-const PERMS=[['st.create','Membuat & mengubah surat tugas'],['st.delete','Menghapus surat tugas'],['tagihan','Membuat & menerbitkan surat tagihan'],['validasi','Memvalidasi pembayaran'],['export','Mengekspor laporan penerimaan'],['set.agen','Mengelola data agen'],['set.users','Mengelola user (akun login)'],['set.petugas','Mengelola petugas'],['set.pejabat','Mengelola pejabat penandatangan'],['set.kop','Mengatur kop surat'],['set.app','Mengatur logo aplikasi, rekening & tarif']];
+const PERMS=[['st.create','Membuat & mengubah surat tugas'],['st.delete','Menghapus surat tugas'],['tagihan','Membuat & menerbitkan surat tagihan'],['validasi','Memvalidasi pembayaran'],['export','Mengekspor laporan penerimaan'],['set.agen','Mengelola data agen'],['set.pegawai','Mengelola pegawai & akun'],['set.pejabat','Mengelola pejabat penandatangan'],['set.kop','Mengatur kop surat'],['set.app','Mengatur logo aplikasi, rekening & tarif']];
 const GRUP_JENIS=[['datang','Kedatangan & keberangkatan'],['sertifikat','Sertifikat & dokumen kapal'],['tindakan','Pengawasan tindakan']];
 const ITEM_JENIS=['Pengawasan dan pemeriksaan faktor risiko PHEIC ;','Pengawasan dan pemeriksaan kesehatan ABK dan penumpang ;','Pengawasan dan pemeriksaan sanitasi kapal, vektor dan binatang pembawa penyakit ;','Pengawasan dan pemeriksaan ketersediaan peralatan dan obat-obatan P3K kapal ;','Pemeriksaan masa berlaku obat-obatan kapal ;','Pemeriksaan kelengkapan dan isi Buku Kesehatan Kapal ;','Pemeriksaan dokumen kesehatan kapal ;','Pengawasan sarana penyimpanan dan distribusi air di kapal ;','Pemeriksaan kesiapan kapal sebelum tindakan ;','Pengawasan pelaksanaan deratisasi atau fumigasi ;','Pemeriksaan kadar aman zat fumigan setelah pelepasan gas ;','Pengawasan pelaksanaan disinseksi ;','Pengawasan pelaksanaan disinfeksi ;','Pemeriksaan hasil tindakan ;','Pengambilan sampel (apabila diperlukan) ;'];
 /* frasa: bagian ganjil dicetak miring; item: nomor pada ITEM_JENIS */
@@ -1117,12 +1128,26 @@ const PETUGAS_AWAL=[["Aryanti","","","","aryanti"],
 const namaInti=n=>String(n||'').toLowerCase().replace(/^dr\.?\s*/,'').split(',')[0].replace(/\s+/g,' ').trim();
 function tambahPetugasAwal(d){PETUGAS_AWAL.forEach(([nama,nip,pangkat,jabatan,key])=>{if(d.petugas.some(p=>p.id==='u_'+key||namaInti(p.nama)===namaInti(nama)||(nip&&p.nip===nip)))return;d.petugas.push({id:'u_'+key,nama,nip,pangkat,jabatan,wilker:'',aktif:true});});}
 const PW_PETUGAS='petugas123';
+/* Peran bawaan: [kode, nama, warna tag, keterangan]. Daftar peran tersimpan di DB.settings.peran sehingga admin bisa
+   menambah peran baru di Hak Akses. Admin selalu punya semua hak; peran lain diatur per fitur. */
+const PERAN_BAWAAN=[['petugas','Petugas','ok','Membuat surat tugas sendiri dan tagihannya; hanya melihat surat yang dibuat atau diikutinya.'],
+  ['validator','Validator keuangan','warn','Memvalidasi pembayaran agen dan mengekspor laporan; melihat semua surat.'],
+  ['pimpinan','Pimpinan','info','Melihat beranda, surat, dan rekap penerimaan tanpa mengubah data.'],
+  ['admin','Admin satker','brand','Seluruh akses, termasuk pengaturan dan pengelolaan pegawai.']];
+const peranAwal=()=>PERAN_BAWAAN.map(([id,nama,warna,ket])=>({id,nama,warna,ket,lingkup:id==='petugas'?'sendiri':'semua',bawaan:true}));
+const daftarPeran=()=>{const l=(typeof DB!=='undefined'&&DB&&DB.settings&&DB.settings.peran)||peranAwal();return l.some(p=>p.id==='admin')?l:[...l,peranAwal().find(p=>p.id==='admin')];};
+const cariPeran=id=>daftarPeran().find(p=>p.id===id);
+/* Bentuk ringkas [kode, nama, warna, keterangan, lingkup] untuk tampilan */
+const peranTupel=()=>daftarPeran().map(p=>[p.id,p.nama,p.warna,p.ket,p.lingkup]);
+const PERMS_PERAN_AWAL={petugas:{'st.create':true,'st.delete':false,tagihan:true},validator:{validasi:true,export:true},pimpinan:{}};
+const peranOf=u=>u&&Array.isArray(u.peran)?u.peran:[];
+const teksPeran=u=>peranOf(u).map(r=>(cariPeran(r)||{}).nama||r).join(', ')||'Tanpa peran';
 function akunPetugas(p,users){
   const dasar=(p.nip||String(p.nama).split(/[\s,]+/).filter(w=>w&&!/^dr\.?$/i.test(w))[0]||'petugas').toLowerCase().replace(/[^a-z0-9]/g,'')||'petugas';
   let un=dasar,i=2;while(users.some(u=>u.username.toLowerCase()===un))un=dasar+i++;
-  return{id:'u_pt_'+p.id,nama:p.nama,username:un,password:PW_PETUGAS,role:'petugas',wilker:'',petugasId:p.id,aktif:p.aktif!==false};
+  return{id:'u_pt_'+p.id,nama:p.nama,username:un,password:PW_PETUGAS,peran:['petugas'],petugasId:p.id,aktif:p.aktif!==false,gantiSandi:true};
 }
-const akunDariPetugas=(id,users=DB.users)=>users.find(u=>u.role==='petugas'&&u.petugasId===id);
+const akunDariPetugas=(id,users=DB.users)=>users.find(u=>u.petugasId===id);
 function lengkapiAkunPetugas(d){d.petugas.forEach(p=>{if(!akunDariPetugas(p.id,d.users))d.users.push(akunPetugas(p,d.users));});}
 /* Data lama di browser: tambah akun wilker, pegawai menjadi data petugas, surat lama masuk wilker Malundung */
 const TARIF_LUAR_AWAL=430000;
@@ -1130,7 +1155,7 @@ const JARAK={dekat:'Kurang dari 4 mil (transport lokal)',jauh:'4 mil atau lebih 
 const PILIH_JARAK=[['dekat','Kurang dari 4 mil'],['jauh','4 mil atau lebih']];
 const REKENING_AWAL={nama:'RPL 048 PS BKK UTK AKOMODASI PEMERINTAH',nomor:'2015856303',bank:'BNI'};
 function migrasi(d){
-  const v=d.v||1;if(v>=12)return false;
+  const v=d.v||1;if(v>=13)return false;
   if(v<10){
   if(v<2){
     d.users.forEach(u=>{if(u.role==='user')u.role='pegawai';});
@@ -1145,7 +1170,7 @@ function migrasi(d){
   d.petugas=d.petugas||[];
   d.users.forEach(u=>{if(u.role==='pegawai'||u.petugas)d.petugas.push({id:u.id,nama:u.nama,nip:u.nip||'',pangkat:u.pangkat||'',jabatan:u.jabatan||'',wilker:u.wilker||'',aktif:u.aktif!==false});});
   d.users=d.users.filter(u=>u.role!=='pegawai').map(({id,nama,username,password,role,wilker,aktif})=>({id,nama,username,password,role,wilker:wilker||'',aktif}));
-  if(d.settings.perms['set.petugas']===undefined)d.settings.perms['set.petugas']=!!d.settings.perms['set.users'];
+  if(d.settings.perms&&d.settings.perms['set.petugas']===undefined)d.settings.perms['set.petugas']=!!d.settings.perms['set.users'];
   // Biaya dirinci per petugas dan tagihan terbit tanpa pengesahan
   d.st.forEach(s=>{const t=s.tagihan;if(!t)return;
     (t.rincian||[]).forEach((r,i)=>{if(r.transport===undefined){r.transport=+r.nominal||0;r.penginapan=i===0?(+t.hotel||0):0;r.uangHarian=i===0?(+t.uangHarian||0):0;delete r.nominal;}});
@@ -1163,7 +1188,12 @@ function migrasi(d){
   // Versi 12: daftar petugas BKK Tarakan; versi 11: setiap petugas mendapat akun
   tambahPetugasAwal(d);
   lengkapiAkunPetugas(d);
-  d.v=12;return true;
+  // Versi 13: peran jamak per akun; akun wilker bersama dinonaktifkan (diganti akun pribadi); hak diatur per peran
+  d.users.forEach(u=>{if(!Array.isArray(u.peran)){u.peran=u.role==='admin'?['admin']:u.role==='petugas'?['petugas']:[];if(u.role==='user'){u.aktif=false;u.bersama=true;}}delete u.role;});
+  if(!d.settings.permsPeran){const p=d.settings.perms||{};d.settings.permsPeran={petugas:{'st.create':p['st.create']!==false,'st.delete':!!p['st.delete'],tagihan:p.tagihan!==false},validator:{validasi:true,export:true},pimpinan:{}};}
+  delete d.settings.perms;
+  if(!d.settings.peran)d.settings.peran=peranAwal();
+  d.v=13;return true;
 }
 async function bersihMigrasi(){for(const f of migrasi.berkas||[])await store.del('files',f);migrasi.berkas=[];}
 const BANK_AWAL='Bank Mandiri|Bank Rakyat Indonesia (BRI)|Bank Negara Indonesia (BNI)|Bank Central Asia (BCA)|Bank Syariah Indonesia (BSI)|Bank Tabungan Negara (BTN)|Bank Kaltimtara|Bank Kaltimtara Syariah|Bank Aceh Syariah|Bank Banten|Bank Bengkulu|Bank BJB|Bank BPD Bali|Bank BPD DIY|Bank BPD DIY Syariah|Bank BRK Syariah|Bank BSG|Bank Jakarta|Bank Jakarta Syariah|Bank Jambi|Bank Jambi Syariah|Bank Jateng|Bank Jateng Syariah|Bank Jatim|Bank Jatim Syariah|Bank Kalbar|Bank Kalbar Syariah|Bank Kalsel|Bank Kalsel Syariah|Bank Kalteng|Bank Lampung|Bank Maluku Malut|Bank Nagari|Bank Nagari Syariah|Bank NTB Syariah|Bank NTT|Bank Papua|Bank Sulselbar|Bank Sulselbar Syariah|Bank Sulteng|Bank Sultra|Bank Sumsel Babel|Bank Sumsel Babel Syariah|Bank Sumut|Bank Sumut Syariah|Bank Aladin Syariah|Bank Allo Indonesia|Bank Amar Indonesia|Bank ANZ Indonesia|Bank Artha Graha Internasional|Bank BCA Syariah|Bank BJB Syariah|Bank BNP Paribas Indonesia|Bank BTPN Syariah|Bank Bumi Arta|Bank Capital Indonesia|Bank CCB Indonesia|Bank CIMB Niaga|Bank CIMB Niaga Syariah|Bank CTBC Indonesia|Bank Danamon Indonesia|Bank Danamon Syariah|Bank DBS Indonesia|Bank Digital BCA (blu)|Bank Ganesha|Bank Hana Indonesia|Bank Hibank Indonesia|Bank HSBC Indonesia|Bank IBK Indonesia|Bank ICBC Indonesia|Bank Ina Perdana|Bank Index Selindo|Bank J Trust Indonesia|Bank Jago|Bank Jago Syariah|Bank Kasikorn Indonesia|Bank KB Indonesia|Bank KB Syariah|Bank Krom Indonesia|Bank Mandiri Taspen|Bank Mayapada Internasional|Bank Maybank Indonesia|Bank Maybank Syariah Indonesia|Bank Mega|Bank Mega Syariah|Bank Mestika Dharma|Bank Mizuho Indonesia|Bank MNC Internasional|Bank Muamalat Indonesia|Bank Multiarta Sentosa|Bank Nano Syariah|Bank Nationalnobu|Bank Neo Commerce|Bank OCBC Indonesia|Bank OCBC Syariah Indonesia|Bank of America|Bank of China|Bank of India Indonesia|Bank Oke Indonesia|Bank Panin|Bank Panin Dubai Syariah|Bank Permata|Bank Permata Syariah|Bank QNB Indonesia|Bank Raya Indonesia|Bank Resona Perdania|Bank Sahabat Sampoerna|Bank Saqu Indonesia|Bank SBI Indonesia|Bank Seabank Indonesia|Bank Shinhan Indonesia|Bank Sinarmas|Bank SMBC Indonesia|Bank Superbank Indonesia|Bank Syariah Nasional|Bank UOB Indonesia|Bank Victoria Internasional|Bank Woori Saudara|Citibank|Deutsche Bank|JPMorgan Chase Bank|MUFG Bank|Standard Chartered Bank'.split('|');
@@ -1178,12 +1208,12 @@ function seedState(){
       tgl:`20${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`,aktif:true};
   });
   const p=(nama,nip,pangkat,jabatan,key)=>({id:'u_'+key,nama,nip,pangkat,jabatan,wilker:'',aktif:true});
-  const users=[{id:'u_admin',nama:'Admin Satker',username:'admin',password:'admin123',role:'admin',wilker:'',aktif:true},...WILKER.map(akunWilker)];
+  const users=[{id:'u_admin',nama:'Admin Satker',username:'admin',password:'admin123',peran:['admin'],aktif:true}];
   const petugas=PETUGAS_AWAL.map(x=>p(...x));
   const ag=e=>agen.find(a=>a.email===e).id;
-  const mk=(id,o)=>({id,token:tokenBaru(),wilker:'malundung',dibuat:Date.now(),dibuatOleh:'u_wk_malundung',penandatangan:'kepala',nomor:'',fileST:null,jemput:null,tagihan:null,bayar:null,notif:{},log:[{t:Date.now(),by:'Sistem',msg:'Contoh dari lampiran surat'}],...o});
+  const mk=(id,o)=>({id,token:tokenBaru(),wilker:'malundung',dibuat:Date.now(),dibuatOleh:'u_admin',penandatangan:'kepala',nomor:'',fileST:null,jemput:null,tagihan:null,bayar:null,notif:{},log:[{t:Date.now(),by:'Sistem',msg:'Contoh dari lampiran surat'}],...o});
   lengkapiAkunPetugas({users,petugas});
-  return{v:12,
+  return{v:13,
     settings:{appName:'RPL Kapal',appSub:'BKK Kelas I Tarakan',appLogo:null,
       satker:'BKK Kelas I Tarakan',
       rekening:{...REKENING_AWAL},bank:[...BANK_AWAL],tarif:0,tarifLuar:TARIF_LUAR_AWAL,batas:'3 x 24 jam',teksTagihan:TEKS_TAGIHAN,
@@ -1193,7 +1223,7 @@ function seedState(){
         {id:'kepala',peran:'Kepala Balai',nama:'dr. Acub Zaenal Amoe, MPH',nip:'',j1:'Kepala Balai Kekarantinaan Kesehatan',j2:'Kelas I Tarakan,'},
         {id:'adum',peran:'Kasubbag Adum',nama:'',nip:'',j1:'Kepala Subbagian Administrasi Umum',j2:'BKK Kelas I Tarakan,'},
         {id:'katimker',peran:'Katimker',nama:'',nip:'',j1:'Ketua Tim Kerja',j2:'BKK Kelas I Tarakan,'}],
-      perms:{'st.create':true,'st.delete':false,'tagihan':true,'validasi':true,'export':true,'set.agen':false,'set.users':false,'set.petugas':false,'set.pejabat':false,'set.kop':false,'set.app':false}},
+      peran:peranAwal(),permsPeran:JSON.parse(JSON.stringify(PERMS_PERAN_AWAL))},
     users,petugas,agen,
     st:[
       mk('st1',{jenis:['cop'],agenId:ag('herina.puspita@gmail.com'),agenSurat:'PT. BNE SAMUDERA AGENSI',noSurat:'17 / X /BNE-TRK/OPS/2026',tglAgen:'2026-10-27',hal:halDari(['cop']),kapal:'ML.RIHANA-2',gt:'36,96',posisi:'REDE TARAKAN',tanggal:'2026-10-29',tglST:'2026-10-29',petugas:['u_hidayatullah','u_irayanti','u_destry']}),
@@ -1214,16 +1244,19 @@ function loadSession(){
 const agenOf=id=>DB.agen.find(a=>a.id===id);
 const userOf=id=>DB.users.find(u=>u.id===id);
 const petugasOf=id=>DB.petugas.find(p=>p.id===id);
-const isAdmin=()=>ME&&ME.role==='admin';
-/* Petugas hanya mengikuti hak surat & tagihan; validasi, ekspor, dan pengaturan tetap milik satker/wilker */
-const PERM_PETUGAS=['st.create','st.delete','tagihan'];
-const can=p=>!!ME&&(ME.role==='admin'||((ME.role!=='petugas'||PERM_PETUGAS.includes(p))&&!!DB.settings.perms[p]));
-const isPetugas=()=>!!ME&&ME.role==='petugas';
+const punya=r=>!!ME&&peranOf(ME).includes(r);
+const isAdmin=()=>punya('admin');
+/* Lingkup data tiap peran: 'semua' surat atau hanya surat yang dibuat/diikuti (petugas) */
+const lihatSemua=()=>isAdmin()||peranOf(ME).some(r=>(cariPeran(r)||{}).lingkup==='semua');
+/* Hak = gabungan hak semua peran akun (diatur di Hak Akses); admin selalu boleh */
+const can=p=>!!ME&&(isAdmin()||peranOf(ME).some(r=>!!((DB.settings.permsPeran||{})[r]||{})[p]));
+const isPetugas=()=>!!ME&&!lihatSemua();
+const sayaPetugas=()=>punya('petugas')&&ME.petugasId?petugasOf(ME.petugasId):null;
 const milikSaya=s=>s.dibuatOleh===ME.id||s.petugas.includes(ME.petugasId);
-const terbatas=()=>!!ME.wilker||isPetugas();
+const terbatas=()=>!lihatSemua();
 /* Akun wilker hanya melihat surat wilkernya; admin melihat semua */
-const stSaya=()=>!ME?DB.st:isPetugas()?DB.st.filter(milikSaya):ME.wilker?DB.st.filter(s=>s.wilker===ME.wilker):DB.st;
-const bolehLihat=s=>isPetugas()?milikSaya(s):!ME.wilker||s.wilker===ME.wilker;
+const stSaya=()=>!ME||lihatSemua()?DB.st:DB.st.filter(milikSaya);
+const bolehLihat=s=>lihatSemua()||milikSaya(s);
 const pejabatOf=id=>DB.settings.pejabat.find(p=>p.id===id)||DB.settings.pejabat[0];
 /* Jawaban transportasi selalu dicatat bersama siapa yang menjawab dan kapan */
 function setJemput(s,v,oleh,msg,nama){s.jemput=v;s.jemputOleh=oleh;s.jemputNama=nama||ME.nama;s.jemputAt=Date.now();addLog(s,msg,nama);}
@@ -2262,8 +2295,7 @@ const SORT_KOL={
   surat:{kapal:['Nama Kapal',s=>s.kapal],tglST:['Tanggal surat',s=>s.tglST,-1],tanggal:['Tanggal periksa',s=>s.tanggal,-1],petugas:['Petugas',namaPetugas],status:['Status',urutStatus]},
   setoran:{agen:['Nama Agen',s=>(agenOf(s.agenId)||{}).nama],kapal:['Nama Kapal',s=>s.kapal],nomor:['No. Surat Tugas',s=>s.nomor],transport:['Transport',s=>s.tagihan?jumlahKol(s.tagihan,'transport'):null,-1],uangHarian:['Uang Harian',s=>s.tagihan?jumlahKol(s.tagihan,'uangHarian'):null,-1],penginapan:['Penginapan',s=>s.tagihan?jumlahKol(s.tagihan,'penginapan'):null,-1],tglBayar:['Tgl Bayar',s=>s.bayar&&s.bayar.tgl,-1],status:['Penagihan',urutStatus]},
   agen:{nama:['Perusahaan',a=>a.nama],kontak:['Kontak',a=>a.email],kab:['Wilayah',a=>a.kab],aktif:['Status',a=>a.aktif?0:1]},
-  users:{nama:['Nama akun',u=>u.nama],username:['Username',u=>u.username],peran:['Peran',u=>u.role==='admin'?0:1],wilker:['Wilayah kerja',u=>wkNama(u.wilker)],aktif:['Status',u=>u.aktif?0:1]},
-  petugas:{nama:['Nama',p=>p.nama],pangkat:['Pangkat/Golongan',p=>p.pangkat],jabatan:['Jabatan',p=>p.jabatan],wilker:['Wilayah kerja',p=>wkNama(p.wilker)],aktif:['Status',p=>p.aktif?0:1]}
+  pegawai:{nama:['Nama',x=>x.nama],jabatan:['Jabatan',x=>x.p?x.p.jabatan:''],peran:['Peran',x=>x.u?teksPeran(x.u):'~'],username:['Username',x=>x.u?x.u.username:'~'],status:['Status',x=>(x.u&&x.u.aktif?0:2)+(x.p&&x.p.aktif?0:1)]}
 };
 const sortPilih=(()=>{try{return JSON.parse(localStorage.getItem('rpl.sort'))||{};}catch(e){return {};}})();
 const sortAktif=t=>{const s=sortPilih[t];return s&&SORT_KOL[t]&&Object.hasOwn(SORT_KOL[t],s.c)&&(s.d===1||s.d===-1)?s:null;};
@@ -2286,20 +2318,19 @@ const sortBar=t=>{const s=sortAktif(t);return `<div class="sort-m mob"><label fo
 function sortSimpan(t){
   localStorage.setItem('rpl.sort',JSON.stringify(sortPilih));
   if(ui[t]&&ui[t].page)ui[t].page=1;
-  const y=scrollY,muat={surat:renderSuratList,setoran:renderSetoranList,agen:renderAgenList,users:renderUserList,petugas:renderPetugasList}[t];
+  const y=scrollY,muat={surat:renderSuratList,setoran:renderSetoranList,agen:renderAgenList,pegawai:renderPegawaiList}[t];
   if(muat)muat();else route();
   scrollTo(0,y);
 }
-const ui={surat:{q:'',jenis:'',page:1},setoran:{q:'',status:'',page:1},agen:{q:'',kab:'',page:1},users:{q:'',role:''},petugas:{q:'',wilker:''},pick:[],riwayat:{q:''}};
+const ui={surat:{q:'',jenis:'',page:1},setoran:{q:'',status:'',page:1},agen:{q:'',kab:'',page:1},pegawai:{q:'',peran:'',wilker:''},pick:[],riwayat:{q:''}};
 const NAV_SATKER=[['dash','Beranda','home'],['surat','Surat Tugas','file'],['setoran','Penerimaan','wallet'],['verifikasi','Scan QR','qr']];
 const NAV_SET=[
-  ['set/users','Manajemen User','users','set.users','Akun login admin dan user wilayah kerja','m'],
-  ['set/petugas','Manajemen Petugas','user','set.petugas','Pegawai yang ditugaskan pada surat tugas','m'],
+  ['set/pegawai','Pegawai & Akun','users','set.pegawai','Data pegawai, akun masuk, dan peran','m'],
   ['set/agen','Data Agen','ship','set.agen','Perusahaan pelayaran dan nomor WhatsApp','m'],
   ['set/pejabat','Pejabat','sign','set.pejabat','Kepala Balai, Kasubbag Adum, Katimker','p'],
   ['set/kop','Kop Surat','image','set.kop','Logo, baris kop, atau kop dari gambar','p'],
   ['set/app','Aplikasi','cog','set.app','Logo aplikasi, rekening, tarif, teks tagihan','p'],
-  ['set/akses','Hak Akses','key','@admin','Fitur yang boleh dipakai user wilayah kerja','p'],
+  ['set/akses','Hak Akses','key','@admin','Hak tiap peran: petugas, validator, pimpinan','p'],
   ['set/data','Cadangan Data','db','@admin','Ekspor, pulihkan, dan atur ulang data','p']];
 /* Keterangan dan tombol utama halaman, diisi oleh tiap tampilan */
 let pageMeta={};
@@ -2332,9 +2363,10 @@ function route(){
   if(a==='akun')return go('Akun Saya',vAkun());
   if(a==='pengaturan'){const it=setItems();return it.length?go('Manajemen & Pengaturan',vHub(it)):denied();}
   if(a==='set'){
+    if(b==='users'||b==='petugas')return location.hash='#/set/pegawai';
     const item=NAV_SET.find(n=>n[0]==='set/'+b);if(!item)return notFound('pengaturan');
     if(!canSet(item[3]))return denied();
-    const v={agen:[vSetAgen,()=>renderAgenList()],users:[vSetUsers,()=>renderUserList()],petugas:[vSetPetugas,()=>renderPetugasList()],pejabat:[vSetPejabat],kop:[vSetKop,()=>fitSheets($('#kop-preview'))],app:[vSetApp],akses:[vSetAkses],data:[vSetData]}[b];
+    const v={agen:[vSetAgen,()=>renderAgenList()],pegawai:[vSetPegawai,()=>renderPegawaiList()],pejabat:[vSetPejabat],kop:[vSetKop,()=>fitSheets($('#kop-preview'))],app:[vSetApp],akses:[vSetAkses],data:[vSetData]}[b];
     return go(item[1],v[0](),'pengaturan',v[1]);
   }
   if(h&&a!=='dash')return location.hash='#/dash';
@@ -2351,7 +2383,7 @@ function renderShell(title,html,back,after){
   const link=(n,cnt)=>`<a href="#/${n[0]}" class="${isOn(n[0],h)||(n[0]==='dash'&&h==='')?'on':''}">${ic(n[2])}<span>${n[1]}</span>${cnt?`<span class="cnt">${cnt}</span>`:''}</a>`;
   const sets=setItems();
   const grup=(judul,kode)=>{const l=sets.filter(n=>n[5]===kode);return l.length?`<div class="nav-h">${judul}</div>${l.map(n=>link(n)).join('')}`:'';};
-  const peranTeks=isAdmin()?'Admin satker':isPetugas()?'Petugas':ME.wilker?'User wilayah kerja':'User satker';
+  const peranTeks=teksPeran(ME);
   const side=`<aside class="side"><a class="brand" href="#/"><img src="${appLogo()}" alt=""><span class="grow"><b>${esc(S.appName)}</b><small>${esc(S.appSub)}</small></span></a>
     <nav class="nav" aria-label="Menu utama">${it.map((n,i)=>link(n,i===0?need:0)).join('')}${grup('Manajemen','m')}${grup('Pengaturan','p')}</nav>
     <div class="side-foot"><a class="me" href="#/akun"><span class="ava">${esc(initials(ME.nama))}</span><span class="grow"><b>${esc(ME.nama)}</b><span class="small muted">${peranTeks}</span></span></a><button class="btn ghost icon" data-act="logout" aria-label="Keluar" title="Keluar">${ic('logout')}</button></div></aside>`;
@@ -2361,7 +2393,7 @@ function renderShell(title,html,back,after){
   const themeIc=document.documentElement.dataset.theme==='dark'?'sun':'moon';
   const M=pageMeta;pageMeta={};
   const top=`<header class="top"><div class="top-in">${back?`<a class="btn ghost icon back ${back==='pengaturan'?'mob':''}" href="#/${back}" aria-label="Kembali">${ic('back')}</a>`:''}<div class="grow"><h1>${esc(title)}</h1>${M.sub?`<p class="sub">${esc(M.sub)}</p>`:''}</div>${M.act?`<div class="page-act">${M.act}</div>`:''}<button class="btn ghost icon" data-act="toggleTheme" aria-label="Ganti tema">${ic(themeIc)}</button><a class="btn ghost icon mob" href="#/akun" aria-label="Akun">${ic('user')}</a></div></header>`;
-  $('#app').innerHTML=`<div class="shell">${side}<div class="main">${top}<main class="content">${html}</main></div></div>${can('st.create')&&(h==='dash'||h==='surat')?`<a class="fab-buat mob" href="#/surat/baru" aria-label="Buat surat tugas">${ic('plus')}</a>`:''}${bnav}`;
+  $('#app').innerHTML=`<div class="shell">${side}<div class="main">${top}<main class="content">${ME.gantiSandi&&h!=='akun'?`<div class="alert warn" style="margin-bottom:var(--gap)">${ic('key')}<span>Anda masih memakai kata sandi bawaan. <a href="#/akun">Ganti sekarang</a> agar akun tidak dipakai orang lain.</span></div>`:''}${html}</main></div></div>${can('st.create')&&(h==='dash'||h==='surat')?`<a class="fab-buat mob" href="#/surat/baru" aria-label="Buat surat tugas">${ic('plus')}</a>`:''}${bnav}`;
   scrollTo(0,0);after&&after();muatThumb();
 }
 const initials=n=>String(n||'?').replace(/^(dr\.|PT\.?|CV\.?|TN\.?)\s*/i,'').split(/\s+/).slice(0,2).map(w=>w[0]||'').join('').toUpperCase();
@@ -2374,15 +2406,14 @@ function renderLogin(){
     <h1>${esc(S.appName)}</h1><p>Rekening Pemerintah Lainnya untuk biaya transportasi pemeriksaan kapal, ${esc(S.appSub)}.</p>
     <ul class="login-wk">${WILKER.map(w=>`<li>${esc(w.nama)}</li>`).join('')}</ul>
   </section><main class="login-main"><form class="login-form" data-form="login" novalidate>
-    <div><h2>Masuk</h2><p class="muted">Gunakan akun admin, wilayah kerja, atau petugas (username NIP).</p></div>
+    <div><h2>Masuk</h2><p class="muted">Masuk dengan akun pribadi Anda. Username pegawai adalah NIP.</p></div>
     ${field('Username','login','',{req:1,ac:'username'})}
     ${field('Kata sandi','password','',{req:1,type:'password',ac:'current-password'})}
     <button class="btn pri block">Masuk</button>
     <a class="btn block" href="#/verifikasi" style="margin-top:12px">${ic('qr')} Scan / upload QR surat pernyataan</a>
     <div class="demo"><div class="lbl">Akun contoh prototipe</div><div class="wrap-row mt2">
       <button type="button" class="btn sm" data-act="demoLogin" data-l="admin" data-p="admin123">Admin satker</button>
-      ${WILKER.map(w=>`<button type="button" class="btn sm" data-act="demoLogin" data-l="${w.username}" data-p="user123">Wilker ${esc(w.nama)}</button>`).join('')}
-      ${(p=>p?`<button type="button" class="btn sm" data-act="demoLogin" data-l="${esc(p.username)}" data-p="${PW_PETUGAS}">Petugas ${esc(p.nama.split(',')[0])}</button>`:'')((l=>{const urut=DB.st.flatMap(s=>s.petugas);return l.filter(u=>urut.includes(u.petugasId)).sort((x,y)=>urut.indexOf(x.petugasId)-urut.indexOf(y.petugasId))[0]||l[0];})(DB.users.filter(u=>u.role==='petugas'&&u.aktif&&u.password===PW_PETUGAS)))}
+      ${(p=>p?`<button type="button" class="btn sm" data-act="demoLogin" data-l="${esc(p.username)}" data-p="${PW_PETUGAS}">Petugas ${esc(p.nama.split(',')[0])}</button>`:'')((l=>{const urut=DB.st.flatMap(s=>s.petugas);return l.filter(u=>urut.includes(u.petugasId)).sort((x,y)=>urut.indexOf(x.petugasId)-urut.indexOf(y.petugasId))[0]||l[0];})(DB.users.filter(u=>peranOf(u).includes('petugas')&&u.petugasId&&u.aktif&&u.password===PW_PETUGAS)))}
     </div></div></form></main></div>`;
 }
 function doLogin(login,pw){
@@ -2391,6 +2422,7 @@ function doLogin(login,pw){
   const acc=u;
   if(!acc||acc.password!==pw)return toast('Username atau kata sandi salah','bad');
   if(!acc.aktif)return toast('Akun dinonaktifkan. Hubungi admin satker.','bad');
+  if(!peranOf(acc).length)return toast('Akun belum diberi peran. Hubungi admin satker.','bad');
   const type='satker';
   sessionStorage.setItem('rpl.session',JSON.stringify({type,id:acc.id}));
   ME={...acc,_type:type};
@@ -2479,7 +2511,7 @@ function renderSuratList(){
 /* ================= Form surat tugas ================= */
 let formJenis=['cop'],formOrang=3,halOtomatis='';
 function vSuratForm(s){
-  const saya=isPetugas()?petugasOf(ME.petugasId):null;
+  const saya=s?null:sayaPetugas();
   const v=s||{jenis:[],tglST:today(),tanggal:today(),tglAgen:today(),hal:'',posisi:'',penandatangan:'kepala',petugas:saya&&saya.aktif?[saya.id]:[],wilker:saya?saya.wilker||'':''};
   formJenis=urutJenis(v.jenis);formOrang=s?s.petugas.length:CONTOH.cop;ui.pick=[...v.petugas];halOtomatis=halDari(formJenis);
   const a=v.agenId?agenOf(v.agenId):null;
@@ -2675,7 +2707,7 @@ const isiDrop=()=>`<span class="drop-ic">${ic('upload')}</span><span class="grow
 function vAkun(){
   const p=themePref();const opt=[['light','Terang','sun'],['dark','Gelap','moon'],['system','Ikuti perangkat','monitor']];
   return `<div class="cols2"><div class="stack">
-  <div class="card"><div class="bd row" style="padding-top:20px"><span class="ava">${esc(initials(ME.nama))}</span><div class="grow"><div class="strong">${esc(ME.nama)}</div><div class="small muted">${esc(ME.username)+', '+(isAdmin()?'Admin satker':isPetugas()?'Petugas':ME.wilker?'User wilayah kerja '+esc(wkNama(ME.wilker)):'User satker')}</div></div></div></div>
+  <div class="card"><div class="bd row" style="padding-top:20px"><span class="ava">${esc(initials(ME.nama))}</span><div class="grow"><div class="strong">${esc(ME.nama)}</div><div class="small muted">${esc(ME.username)+', '+esc(teksPeran(ME))}</div></div></div></div>
   <div class="card"><div class="hd"><h2>Tampilan</h2></div><div class="bd"><div class="seg" role="group" aria-label="Tema">${opt.map(o=>`<button class="${p===o[0]?'on':''}" data-act="setTheme" data-v="${o[0]}" aria-pressed="${p===o[0]}">${ic(o[2])} ${o[1]}</button>`).join('')}</div><p class="hint mt2">Pilihan tersimpan di perangkat ini.</p></div></div>
   <button class="btn danger block mob" data-act="logout">${ic('logout')} Keluar</button></div>
   <form class="card" data-form="sandi" novalidate><div class="hd"><h2>Ganti kata sandi</h2></div><div class="bd stack">${field('Kata sandi lama','lama','',{type:'password',req:1,ac:'current-password'})}${field('Kata sandi baru','baru','',{type:'password',req:1,ac:'new-password',hint:'Minimal 6 karakter.'})}<div class="foot-act"><button class="btn pri">Simpan kata sandi</button></div></div></form></div>`;
@@ -2711,57 +2743,71 @@ function agenModal(a){
     <label class="row mt"><span class="switch"><input type="checkbox" name="aktif" ${v.aktif?'checked':''}><i></i></span> Akun aktif</label>`,
     foot:`${a&&!DB.st.some(s=>s.agenId===a.id)?`<button type="button" class="btn danger" data-act="hapusAgen" data-id="${a.id}" style="margin-right:auto">Hapus</button>`:''}<button type="button" class="btn" data-act="closeModal">Batal</button><button class="btn pri">Simpan</button>`});
 }
-const PERAN_USER={admin:['Admin satker','brand'],user:['User wilayah kerja','info'],petugas:['Petugas','ok']};
-function vSetUsers(){
-  const adm=isAdmin(),f=ui.users;
-  meta('Akun untuk masuk ke aplikasi: admin, user wilayah kerja, dan petugas',`<button class="btn pri" data-act="userForm">${ic('plus')}<span>Tambah user</span></button>`);
-  return `<div class="toolbar"><div class="search">${ic('search')}<input class="inp" placeholder="Cari nama atau username" value="${esc(f.q)}" data-input="usersQ" aria-label="Cari user"></div>
-  ${adm?`<div class="seg" role="group" aria-label="Peran">${[['','Semua'],['admin','Admin'],['user','Wilker'],['petugas','Petugas']].map(([k,l])=>`<button class="${f.role===k?'on':''}" data-act="userPeran" data-k="${k}" aria-pressed="${f.role===k}">${l}</button>`).join('')}</div>`:''}</div><div class="card" id="list"></div>`;
+/* ================= Pegawai & Akun: satu orang satu catatan ================= */
+/* Impor CSV: kolom nama;nip;pangkat;jabatan;wilker (baris judul opsional). Cocok bila NIP atau nama sama; akun petugas dibuat untuk pegawai baru. */
+function imporPegawai(rows){
+  if(!rows.length)throw new Error('Berkas CSV kosong');
+  let kol={nama:0,nip:1,pangkat:2,jabatan:3,wilker:4};
+  const kepala=rows[0].map(x=>x.trim().toLowerCase());
+  if(kepala.includes('nama')){kol={};['nama','nip','pangkat','jabatan','wilker'].forEach(k=>{kol[k]=kepala.indexOf(k);});rows=rows.slice(1);}
+  const ambil=(r,k)=>kol[k]>=0?String(r[kol[k]]||'').trim():'';
+  const h={baru:0,ubah:0,lewat:0};
+  rows.forEach(r=>{const nama=ambil(r,'nama'),nip=ambil(r,'nip').replace(/\D/g,'');if(!nama){h.lewat++;return;}
+    const wkT=ambil(r,'wilker').toLowerCase(),wk=(WILKER.find(w=>w.id===wkT||w.nama.toLowerCase()===wkT)||{}).id;
+    const ada=DB.petugas.find(p=>(nip&&p.nip===nip)||namaInti(p.nama)===namaInti(nama));
+    const isi={nama,nip:/^\d{18}$/.test(nip)?nip:'',pangkat:ambil(r,'pangkat'),jabatan:ambil(r,'jabatan')};
+    if(ada){Object.keys(isi).forEach(k=>{if(isi[k])ada[k]=isi[k];});if(wk)ada.wilker=wk;const a=akunDariPetugas(ada.id);if(a)a.nama=ada.nama;h.ubah++;}
+    else{const p={id:'p'+uid(),...isi,wilker:wk||'',aktif:true};DB.petugas.push(p);DB.users.push(akunPetugas(p,DB.users));h.baru++;}});
+  return h;
 }
-function renderUserList(){
-  const f=ui.users,q=f.q.toLowerCase(),urut={admin:0,user:1,petugas:2};
-  const rows=sortBaris('users',DB.users.filter(u=>(isAdmin()||u.role!=='admin')&&(!f.role||u.role===f.role)&&(!q||(u.nama+' '+u.username+' '+wkNama(u.wilker)).toLowerCase().includes(q))).sort((a,b)=>urut[a.role]-urut[b.role]));
-  $('#list').innerHTML=rows.length?`${sortBar('users')}<div class="tblwrap"><table class="tbl"><thead><tr>${thSort('users','nama')}${thSort('users','username')}${thSort('users','peran')}${thSort('users','wilker')}${thSort('users','aktif')}</tr></thead><tbody>${rows.map(u=>`<tr class="click" data-act="userForm" data-id="${u.id}">
-    <td class="hd-cell"><span class="who"><span class="ava">${esc(initials(u.nama))}</span><span class="strong">${esc(u.nama)}</span></span></td>
-    <td data-l="Username"><span>${esc(u.username)}</span></td>
-    <td data-l="Peran"><span><span class="tag ${PERAN_USER[u.role][1]}">${PERAN_USER[u.role][0]}</span></span></td>
-    <td data-l="Wilayah kerja"><span>${u.role==='petugas'?'Dipilih saat membuat surat':esc(wkNama(u.wilker)||'Semua wilayah')}</span></td>
-    <td data-l="Status"><span>${u.aktif?'<span class="tag ok">Aktif</span>':'<span class="tag">Nonaktif</span>'}</span></td></tr>`).join('')}</tbody></table></div>`:`<div class="empty">Tidak ada user yang cocok.</div>`;
+function daftarOrang(){
+  const l=DB.petugas.map(p=>({p,u:akunDariPetugas(p.id),nama:p.nama}));
+  DB.users.filter(u=>!u.petugasId).forEach(u=>l.push({p:null,u,nama:u.nama}));
+  return l.filter(x=>isAdmin()||!(x.u&&peranOf(x.u).includes('admin')));
 }
-function userModal(u){
-  const self=u&&u.id===ME.id,v=u||{nama:'',username:'',role:'user',wilker:'',aktif:true};
-  openModal({title:u?'Ubah User':'Tambah User',form:'user',body:`<input type="hidden" name="id" value="${u?u.id:''}"><div class="grid2">
-    ${field('Nama akun','nama',v.nama,{req:1,cls:'span2',ph:'Wilker Tanjung Selor'})}
-    ${field('Username','username',v.username,{req:1,ac:'off'})}${field('Kata sandi','password','',{ph:u?'Kosongkan jika tidak diubah':'Kosong = sandi bawaan',ac:'new-password',hint:u?'':`Bawaan: user123, petugas ${PW_PETUGAS}`})}
-    <div class="field"><label for="f_role">Peran</label><select class="inp" id="f_role" name="role" data-change="userRole" ${self||(!isAdmin()&&v.role==='admin')?'disabled':''}><option value="user" ${v.role==='user'?'selected':''}>User wilayah kerja</option><option value="petugas" ${v.role==='petugas'?'selected':''}>Petugas</option>${isAdmin()?`<option value="admin" ${v.role==='admin'?'selected':''}>Admin satker</option>`:''}</select></div>
-    <div class="field" id="pt-field" ${v.role==='petugas'?'':'hidden'}><label class="req" for="f_pt">Data petugas</label><select class="inp" id="f_pt" name="petugasId" ${self?'disabled':''}><option value="">Pilih petugas</option>${DB.petugas.filter(p=>p.id===v.petugasId||!akunDariPetugas(p.id)).map(p=>`<option value="${p.id}" ${v.petugasId===p.id?'selected':''}>${esc(p.nama)}</option>`).join('')}</select><span class="hint">Wilayah kerja dipilih petugas saat membuat surat tugas.</span></div>
-    <div class="field" id="wk-field" ${v.role!=='user'?'hidden':''}><label class="req" for="f_wk">Wilayah kerja</label><select class="inp" id="f_wk" name="wilker"><option value="">Pilih wilayah kerja</option>${WILKER.map(w=>`<option value="${w.id}" ${v.wilker===w.id?'selected':''}>${esc(w.nama)}</option>`).join('')}</select><span class="hint">Satu wilayah kerja untuk satu akun.</span></div></div>
-    <label class="row mt"><span class="switch"><input type="checkbox" name="aktif" ${v.aktif?'checked':''} ${self?'disabled':''}><i></i></span> Akun aktif</label>`,
-    foot:`${u&&!self?`<button type="button" class="btn danger" data-act="hapusUser" data-id="${u.id}" style="margin-right:auto">Hapus</button>`:''}<button type="button" class="btn" data-act="closeModal">Batal</button><button class="btn pri">Simpan</button>`});
+function vSetPegawai(){
+  const f=ui.pegawai;
+  meta('Satu data per orang: profil pegawai, akun masuk, dan peran',`<button class="btn" data-act="pegawaiEkspor">${ic('down')}<span>Ekspor</span></button><label class="btn">${ic('upload')}<span>Impor CSV</span><input type="file" accept=".csv,text/csv" data-change="pegawaiImpor" hidden></label><button class="btn pri" data-act="pegawaiForm">${ic('plus')}<span>Tambah pegawai</span></button>`);
+  return `<div class="toolbar"><div class="search">${ic('search')}<input class="inp" placeholder="Cari nama, NIP, jabatan, atau username" value="${esc(f.q)}" data-input="pegawaiCari" aria-label="Cari pegawai"></div>
+  <select class="inp" data-change="pegawaiPeran" aria-label="Peran"><option value="">Semua peran</option>${peranTupel().filter(r=>isAdmin()||r[0]!=='admin').map(r=>`<option value="${r[0]}" ${f.peran===r[0]?'selected':''}>${r[1]}</option>`).join('')}<option value="-" ${f.peran==='-'?'selected':''}>Tanpa akun</option><option value="nonaktif" ${f.peran==='nonaktif'?'selected':''}>Akun nonaktif</option></select>
+  <select class="inp" data-change="pegawaiWilker" aria-label="Wilayah kerja"><option value="">Semua wilayah</option>${WILKER.map(w=>`<option value="${w.id}" ${f.wilker===w.id?'selected':''}>${esc(w.nama)}</option>`).join('')}</select></div><div class="card" id="list"></div>`;
 }
-function vSetPetugas(){
-  const f=ui.petugas;
-  meta('Pegawai yang ditugaskan pada surat tugas, tanpa akun login',`<button class="btn pri" data-act="petugasForm">${ic('plus')}<span>Tambah petugas</span></button>`);
-  return `<div class="toolbar"><div class="search">${ic('search')}<input class="inp" placeholder="Cari nama, NIP, atau jabatan" value="${esc(f.q)}" data-input="petugasCari" aria-label="Cari petugas"></div>
-  <select class="inp" data-change="petugasWilker" aria-label="Wilayah kerja"><option value="">Semua wilayah</option>${WILKER.map(w=>`<option value="${w.id}" ${f.wilker===w.id?'selected':''}>${esc(w.nama)}</option>`).join('')}</select></div><div class="card" id="list"></div>`;
+function renderPegawaiList(){
+  const f=ui.pegawai,q=f.q.toLowerCase();
+  const rows=sortBaris('pegawai',daftarOrang().filter(x=>{
+    if(f.peran==='-'&&x.u)return false;if(f.peran==='nonaktif'&&!(x.u&&!x.u.aktif))return false;
+    if(f.peran&&!['-','nonaktif'].includes(f.peran)&&!(x.u&&peranOf(x.u).includes(f.peran)))return false;
+    if(f.wilker&&!(x.p&&x.p.wilker===f.wilker))return false;
+    return !q||[x.nama,x.p&&x.p.nip,x.p&&x.p.jabatan,x.u&&x.u.username].join(' ').toLowerCase().includes(q);}));
+  const tagPeran=u=>!u?'<span class="tag">Tanpa akun</span>':peranOf(u).length?peranTupel().filter(r=>peranOf(u).includes(r[0])).map(r=>`<span class="tag ${r[2]}">${r[1]}</span>`).join(' '):'<span class="tag">Tanpa peran</span>';
+  $('#list').innerHTML=rows.length?`${sortBar('pegawai')}<div class="tblwrap"><table class="tbl"><thead><tr>${thSort('pegawai','nama')}${thSort('pegawai','jabatan')}${thSort('pegawai','peran')}${thSort('pegawai','username')}${thSort('pegawai','status')}</tr></thead><tbody>${rows.map(x=>`<tr class="click" data-act="pegawaiForm" ${x.p?`data-p="${x.p.id}"`:`data-u="${x.u.id}"`}>
+    <td class="hd-cell"><span class="who"><span class="ava">${esc(initials(x.nama))}</span><span class="grow"><span class="strong">${esc(x.nama)}</span><div class="small muted">${x.p?esc(x.p.nip||'Tanpa NIP'):x.u.bersama?'Akun wilker bersama (lama)':'Akun sistem'}</div></span></span></td>
+    <td data-l="Jabatan"><span>${x.p?esc(x.p.jabatan||'-'):'-'}</span></td>
+    <td data-l="Peran"><span class="wrap-row">${tagPeran(x.u)}</span></td>
+    <td data-l="Username"><span>${x.u?esc(x.u.username):'-'}</span></td>
+    <td data-l="Status"><span class="wrap-row">${x.p?(x.p.aktif?'<span class="tag ok">Bisa ditugaskan</span>':'<span class="tag">Tidak ditugaskan</span>'):''}${x.u&&!x.u.aktif?'<span class="tag bad">Akun nonaktif</span>':''}</span></td></tr>`).join('')}</tbody></table></div><div class="pager"><span>${rows.length} orang</span></div>`:`<div class="empty">Tidak ada pegawai yang cocok.</div>`;
 }
-function renderPetugasList(){
-  const f=ui.petugas,q=f.q.toLowerCase();
-  const rows=sortBaris('petugas',DB.petugas.filter(p=>(!f.wilker||p.wilker===f.wilker)&&(!q||(p.nama+' '+p.nip+' '+p.jabatan).toLowerCase().includes(q))));
-  $('#list').innerHTML=rows.length?`${sortBar('petugas')}<div class="tblwrap"><table class="tbl"><thead><tr>${thSort('petugas','nama')}${thSort('petugas','pangkat')}${thSort('petugas','jabatan')}${thSort('petugas','wilker')}${thSort('petugas','aktif')}</tr></thead><tbody>${rows.map(p=>`<tr class="click" data-act="petugasForm" data-id="${p.id}">
-    <td class="hd-cell"><span class="who"><span class="ava">${esc(initials(p.nama))}</span><span class="grow"><span class="strong">${esc(p.nama)}</span><div class="small muted">${esc(p.nip||'Tanpa NIP')}</div></span></span></td>
-    <td data-l="Pangkat"><span>${esc(p.pangkat||'-')}</span></td><td data-l="Jabatan"><span>${esc(p.jabatan)}</span></td>
-    <td data-l="Wilayah kerja"><span>${esc(wkNama(p.wilker)||'Semua wilayah')}</span></td>
-    <td data-l="Status"><span>${p.aktif?'<span class="tag ok">Aktif</span>':'<span class="tag">Nonaktif</span>'}</span></td></tr>`).join('')}</tbody></table></div><div class="pager"><span>${rows.length} petugas</span></div>`:`<div class="empty">Tidak ada petugas yang cocok.</div>`;
-}
-function petugasModal(p){
-  const v=p||{nama:'',nip:'',pangkat:'',jabatan:'',wilker:'',aktif:true},dipakai=p&&DB.st.some(s=>s.petugas.includes(p.id));
-  openModal({title:p?'Ubah Petugas':'Tambah Petugas',form:'petugas',body:`<input type="hidden" name="id" value="${p?p.id:''}"><div class="grid2">
+function pegawaiModal(p,u){
+  const a=u||(p?akunDariPetugas(p.id):null),sistem=!p&&!!u,self=!!a&&a.id===ME.id,v=p||{nama:'',nip:'',pangkat:'',jabatan:'',wilker:'',aktif:true};
+  const dipakai=p&&DB.st.some(s=>s.petugas.includes(p.id));
+  const peranBaris=peranTupel().filter(r=>isAdmin()||r[0]!=='admin').map(([k,l,,ket])=>{const on=a?peranOf(a).includes(k):k==='petugas',kunci=self&&k==='admin';
+    return `<label class="peran-row">${switchEl(`name="peran_${k}"`,on,kunci)}<span class="grow"><b>${l}</b><span class="hint">${ket}</span></span></label>${kunci?`<input type="hidden" name="peran_${k}" value="on">`:''}`;}).join('');
+  openModal({title:sistem?'Ubah Akun':p?'Ubah Pegawai':'Tambah Pegawai',form:'pegawai',wide:true,body:`<input type="hidden" name="pid" value="${p?p.id:''}"><input type="hidden" name="uid" value="${a?a.id:''}"><input type="hidden" name="sistem" value="${sistem?1:''}">
+    ${sistem?`<div class="grid2">${field('Nama akun','nama',a.nama,{req:1,cls:'span2'})}</div>${a.bersama?`<div class="alert info mt2">${ic('alert')}<span>Akun wilker bersama sudah diganti akun pribadi. Biarkan nonaktif atau hapus bila tidak diperlukan.</span></div>`:''}`:
+    `<h3 class="sub-h">Data pegawai</h3><div class="grid2">
     ${field('Nama lengkap & gelar','nama',v.nama,{req:1,cls:'span2'})}${field('NIP','nip',v.nip,{mode:'numeric',hint:'18 digit, boleh kosong.'})}${field('Pangkat/Golongan','pangkat',v.pangkat,{ph:'Penata Tk. I - III/d'})}
     ${field('Jabatan','jabatan',v.jabatan,{req:1,cls:'span2'})}
-    <div class="field span2"><label for="f_pwk">Wilayah kerja</label><select class="inp" id="f_pwk" name="wilker"><option value="">Semua wilayah</option>${WILKER.map(w=>`<option value="${w.id}" ${v.wilker===w.id?'selected':''}>${esc(w.nama)}</option>`).join('')}</select><span class="hint">Petugas wilayah ini tampil paling atas saat memilih petugas.</span></div></div>
-    <label class="row mt"><span class="switch"><input type="checkbox" name="aktif" ${v.aktif?'checked':''}><i></i></span> Bisa ditugaskan</label>`,
-    foot:`${p&&!dipakai?`<button type="button" class="btn danger" data-act="hapusPetugas" data-id="${p.id}" style="margin-right:auto">Hapus</button>`:''}<button type="button" class="btn" data-act="closeModal">Batal</button><button class="btn pri">Simpan</button>`});
+    <div class="field"><label for="f_pwk">Wilayah kerja asal</label><select class="inp" id="f_pwk" name="wilker"><option value="">Semua wilayah</option>${WILKER.map(w=>`<option value="${w.id}" ${v.wilker===w.id?'selected':''}>${esc(w.nama)}</option>`).join('')}</select><span class="hint">Terisi otomatis saat pegawai ini membuat surat.</span></div>
+    <label class="row field-sw">${switchEl('name="tugas"',v.aktif)} Bisa ditugaskan di surat tugas</label></div>`}
+    <h3 class="sub-h mt">Akun masuk</h3>
+    ${sistem?'<input type="hidden" name="akun" value="on">':`<label class="row">${switchEl('name="akun" data-change="pgAkun"',!!a,self)} Punya akun untuk masuk aplikasi</label>${self?'<input type="hidden" name="akun" value="on">':''}`}
+    <div id="akun-isi" class="stack mt2" ${sistem||a?'':'hidden'}><div class="grid2">
+      ${field('Username','username',a?a.username:'',{ac:'off',ph:'Kosong = NIP',hint:'Pegawai masuk dengan username ini.'})}
+      ${field('Kata sandi','password','',{ac:'new-password',ph:a?'Kosongkan jika tidak diubah':'Kosong = '+PW_PETUGAS,hint:'Sandi yang diatur admin wajib diganti pemiliknya.'})}</div>
+      <div class="peran-daftar"><span class="lbl">Peran</span>${sistem&&!isAdmin()?'':peranBaris}</div>
+      <label class="row">${switchEl('name="aktifAkun"',a?a.aktif:true,self)} Akun aktif</label>${self?'<input type="hidden" name="aktifAkun" value="on">':''}
+    </div>`,
+    foot:`${!self&&(sistem||(p&&!dipakai))?`<button type="button" class="btn danger" data-act="hapusPegawai" ${p?`data-p="${p.id}"`:`data-u="${a.id}"`} style="margin-right:auto">Hapus</button>`:''}<button type="button" class="btn" data-act="closeModal">Batal</button><button class="btn pri">Simpan</button>`});
 }
 function vSetPejabat(){
   meta('Nama dan jabatan yang tercetak pada surat');
@@ -2795,8 +2841,22 @@ function vSetApp(){
   <div class="foot-act"><button class="btn pri">Simpan pengaturan</button></div></form>`;
 }
 function vSetAkses(){
-  meta('Berlaku untuk semua user wilayah kerja. Admin satker selalu memiliki seluruh akses.');
-  return `<div class="card"><div class="perm-grid">${PERMS.map(([k,l])=>`<label class="perm-row"><span>${l}</span>${switchEl(`data-change="perm" data-k="${k}" aria-label="${esc(l)}"`,DB.settings.perms[k])}</label>`).join('')}</div></div>`;
+  meta('Hak tiap peran. Akun dengan beberapa peran mendapat gabungan haknya. Admin satker selalu memiliki seluruh akses.',`<button class="btn pri" data-act="peranForm">${ic('plus')}<span>Tambah peran</span></button>`);
+  const kol=peranTupel().filter(r=>r[0]!=='admin'),P=DB.settings.permsPeran||{};
+  return `<div class="card"><div class="tblwrap"><table class="tbl perm-tbl"><thead><tr><th>Fitur</th>${kol.map(r=>`<th class="center">${esc(r[1])}</th>`).join('')}</tr></thead><tbody>${PERMS.map(([k,l])=>`<tr><td class="hd-cell"><span>${l}</span></td>${kol.map(r=>`<td data-l="${esc(r[1])}" class="center"><span>${switchEl(`data-change="perm" data-r="${r[0]}" data-k="${k}" aria-label="${esc(l+' - '+r[1])}"`,!!(P[r[0]]||{})[k])}</span></td>`).join('')}</tr>`).join('')}</tbody></table></div></div>
+  <div class="card mt"><div class="hd"><h2>Daftar peran</h2><span class="small muted">${daftarPeran().length} peran</span></div><ul class="peran-ket">${daftarPeran().map(p=>{const n=DB.users.filter(u=>peranOf(u).includes(p.id)).length;
+    return `<li><span class="grow"><span class="tag ${p.warna}">${esc(p.nama)}</span>${p.bawaan?'':' <span class="small muted">tambahan</span>'}<span class="small muted d-blok">${esc(p.ket||'-')} ${p.id==='admin'?'':`Lingkup data: ${p.lingkup==='semua'?'semua surat':'surat yang dibuat atau diikuti'}.`} ${n} akun.</span></span>${p.id==='admin'?'':`<button class="btn sm" data-act="peranForm" data-id="${p.id}">${ic('edit')} Ubah</button>`}</li>`;}).join('')}</ul></div>`;
+}
+const WARNA_PERAN=[['ok','Hijau'],['info','Biru'],['warn','Kuning'],['bad','Merah'],['brand','Toska'],['','Abu-abu']];
+function peranModal(p){
+  const v=p||{nama:'',ket:'',lingkup:'sendiri',warna:'info'},dipakai=p?DB.users.filter(u=>peranOf(u).includes(p.id)).length:0;
+  openModal({title:p?'Ubah Peran':'Tambah Peran',form:'peran',body:`<input type="hidden" name="id" value="${p?p.id:''}"><div class="grid2">
+    ${field('Nama peran','nama',v.nama,{req:1,cls:'span2',ph:'Operator wilker'})}
+    ${field('Keterangan','ket',v.ket,{type:'textarea',rows:2,cls:'span2',ph:'Tugas peran ini'})}
+    <div class="field"><label for="f_lingkup">Lingkup data</label><select class="inp" id="f_lingkup" name="lingkup"><option value="sendiri" ${v.lingkup!=='semua'?'selected':''}>Surat yang dibuat atau diikuti</option><option value="semua" ${v.lingkup==='semua'?'selected':''}>Semua surat</option></select></div>
+    <div class="field"><label for="f_warna">Warna label</label><select class="inp" id="f_warna" name="warna">${WARNA_PERAN.map(([k,l])=>`<option value="${k}" ${v.warna===k?'selected':''}>${l}</option>`).join('')}</select></div></div>
+    <p class="hint mt2">Hak peran diatur pada tabel Hak Akses setelah disimpan.</p>`,
+    foot:`${p&&!p.bawaan?`<button type="button" class="btn danger" data-act="hapusPeran" data-id="${p.id}" style="margin-right:auto">Hapus</button>`:''}<button type="button" class="btn" data-act="closeModal">Batal</button><button class="btn pri">Simpan</button>`});
 }
 function vSetData(){
   meta('Seluruh data prototipe hanya tersimpan di browser ini');
@@ -2904,11 +2964,13 @@ const actions={
     const head=['nama','siup','email','telepon','alamat','provinsi','kabupaten','keterangan','tanggal_daftar','status'];
     const lines=DB.agen.map(a=>[a.nama,a.siup,a.email,a.telp,a.alamat,a.provinsi,a.kab,a.ket,a.tgl,a.aktif?'Aktif':'Nonaktif'].map(csvCell).join(';'));
     downloadBlob(new Blob(['﻿'+[head.join(';'),...lines].join('\r\n')],{type:'text/csv;charset=utf-8'}),`data-agen-${today()}.csv`);},
-  userForm(el){userModal(el.dataset.id?userOf(el.dataset.id):null);},
-  userPeran(el){ui.users.role=el.dataset.k;route();},
-  petugasForm(el){petugasModal(el.dataset.id?petugasOf(el.dataset.id):null);},
-  hapusUser(el){const u=userOf(el.dataset.id);confirmBox('Hapus user',`Akun ${u.nama} akan dihapus permanen.`,()=>{DB.users=DB.users.filter(x=>x!==u);save();route();toast('User dihapus');},'Hapus',true);},
-  hapusPetugas(el){const p=petugasOf(el.dataset.id);confirmBox('Hapus petugas',`${p.nama} akan dihapus permanen.`,()=>{DB.petugas=DB.petugas.filter(x=>x!==p);DB.users=DB.users.filter(u=>!(u.role==='petugas'&&u.petugasId===p.id));save();route();toast('Petugas dan akunnya dihapus');},'Hapus',true);},
+  pegawaiForm(el){pegawaiModal(el.dataset.p?petugasOf(el.dataset.p):null,el.dataset.u?userOf(el.dataset.u):null);},
+  pegawaiEkspor(){const r=[['nama','nip','pangkat','jabatan','wilker','username','peran','bisa_ditugaskan','akun_aktif']];daftarOrang().filter(x=>x.p).forEach(({p,u})=>r.push([p.nama,p.nip,p.pangkat,p.jabatan,wkNama(p.wilker),u?u.username:'',u?peranOf(u).join('+'):'',p.aktif?'ya':'tidak',u?(u.aktif?'ya':'tidak'):'']));downloadBlob(new Blob(['\ufeff'+r.map(x=>x.map(csvCell).join(';')).join('\r\n')],{type:'text/csv'}),'pegawai-bkk-tarakan.csv');toast('Data pegawai diekspor');},
+  peranForm(el){peranModal(el.dataset.id?cariPeran(el.dataset.id):null);},
+  hapusPeran(el){const p=cariPeran(el.dataset.id),n=DB.users.filter(u=>peranOf(u).includes(p.id));
+    confirmBox('Hapus peran',`Peran ${p.nama} akan dihapus${n.length?` dan dilepas dari ${n.length} akun; akun yang tidak punya peran lain tidak bisa masuk`:''}.`,()=>{DB.settings.peran=daftarPeran().filter(x=>x.id!==p.id);delete DB.settings.permsPeran[p.id];n.forEach(u=>{u.peran=peranOf(u).filter(r=>r!==p.id);});save();route();toast('Peran dihapus');},'Hapus',true);},
+  hapusPegawai(el){const p=el.dataset.p?petugasOf(el.dataset.p):null,u=el.dataset.u?userOf(el.dataset.u):null;
+    confirmBox(p?'Hapus pegawai':'Hapus akun',p?`${p.nama} dan akun masuknya akan dihapus permanen.`:`Akun ${u.nama} akan dihapus permanen.`,()=>{if(p){DB.petugas=DB.petugas.filter(x=>x!==p);DB.users=DB.users.filter(x=>x.petugasId!==p.id);}else DB.users=DB.users.filter(x=>x!==u);save();route();toast(p?'Pegawai dan akunnya dihapus':'Akun dihapus');},'Hapus',true);},
   kopMode(el){DB.settings.kop.mode=el.dataset.v;refresh();},
   kopLogoReset(){DB.settings.kop.logo=null;refresh();},
   appLogoReset(){DB.settings.appLogo=null;refresh();},
@@ -2986,7 +3048,7 @@ const forms={
     const acc=userOf(ME.id),baru=String(fd.get('baru'));
     if(acc.password!==fd.get('lama'))return toast('Kata sandi lama salah','bad');
     if(baru.length<6)return toast('Kata sandi baru minimal 6 karakter','bad');
-    acc.password=baru;ME.password=baru;save();f.reset();toast('Kata sandi diganti');
+    acc.password=baru;ME.password=baru;delete acc.gantiSandi;delete ME.gantiSandi;save();f.reset();toast('Kata sandi diganti');route();
   },
   agen(fd){
     const id=fd.get('id'),email=String(fd.get('email')).trim(),nama=String(fd.get('nama')).trim();
@@ -2998,36 +3060,53 @@ const forms={
     else DB.agen.unshift({id:'ag'+uid(),tgl:today(),...d});
     closeModal();save();renderAgenList();toast('Data agen disimpan');
   },
-  user(fd){
-    const id=fd.get('id'),g=k=>String(fd.get(k)||'').trim(),self=id===ME.id,lama=id?userOf(id):null;
-    if(!isAdmin()&&lama&&lama.role==='admin')return toast('Hanya admin yang dapat mengubah akun admin','bad');
-    const role=self?ME.role:(fd.get('role')||(lama?lama.role:'user')),wilker=role==='user'?g('wilker'):'',nama=g('nama'),username=g('username');
-    if(role==='admin'&&!isAdmin()&&!self)return toast('Hanya admin yang dapat membuat akun admin','bad');
-    const petugasId=role==='petugas'?(self?ME.petugasId:g('petugasId')):'';
-    if(role==='petugas'&&!petugasOf(petugasId))return toast('Pilih data petugas untuk akun ini','bad');
-    if(role==='petugas'&&DB.users.some(u=>u.role==='petugas'&&u.petugasId===petugasId&&u.id!==id))return toast('Petugas ini sudah memiliki akun','bad');
-    if(!nama||!username)return toast('Nama akun dan username wajib diisi','bad');
-    if(DB.users.some(u=>u.username.toLowerCase()===username.toLowerCase()&&u.id!==id))return toast('Username sudah dipakai','bad');
-    if(role==='user'&&!wilker)return toast('User wilayah kerja wajib memiliki wilayah kerja','bad');
-    if(role==='user'){const dobel=DB.users.find(u=>u.role==='user'&&u.wilker===wilker&&u.id!==id);if(dobel)return toast(`Wilker ${wkNama(wilker)} sudah memiliki akun: ${dobel.username}`,'bad');}
-    const pw=String(fd.get('password')||''),d={nama,username,wilker,petugasId:petugasId||undefined};
-    if(!self){d.role=role;d.aktif=!!fd.get('aktif');}
-    if(lama){Object.assign(lama,d);if(pw)lama.password=pw;if(self)Object.assign(ME,lama);}
-    else DB.users.push({id:'u'+uid(),password:pw||(role==='petugas'?PW_PETUGAS:'user123'),...d});
-    closeModal();save();route();toast('Data user disimpan');
+  peran(fd){
+    const g=k=>String(fd.get(k)||'').trim(),id=g('id'),nama=g('nama');
+    if(!nama)return toast('Nama peran wajib diisi','bad');
+    const l=daftarPeran();if(l.some(p=>p.nama.toLowerCase()===nama.toLowerCase()&&p.id!==id))return toast('Nama peran sudah ada','bad');
+    const d={nama,ket:g('ket'),lingkup:g('lingkup')==='semua'?'semua':'sendiri',warna:g('warna')};
+    if(id)Object.assign(l.find(p=>p.id===id),d);
+    else{const dasar=nama.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'peran';let k=dasar,i=2;while(l.some(p=>p.id===k))k=dasar+'-'+i++;l.push({id:k,...d,bawaan:false});(DB.settings.permsPeran=DB.settings.permsPeran||{})[k]={};}
+    DB.settings.peran=l;closeModal();save();route();toast(id?'Peran disimpan':'Peran ditambahkan. Atur haknya pada tabel di atas.');
   },
-  petugas(fd){
-    const id=fd.get('id'),g=k=>String(fd.get(k)||'').trim(),nama=g('nama'),jabatan=g('jabatan'),nip=g('nip').replace(/\s/g,'');
-    if(!nama||!jabatan)return toast('Nama dan jabatan wajib diisi','bad');
-    if(nip&&!/^\d{18}$/.test(nip))return toast('NIP harus 18 digit angka','bad');
-    if(nip&&DB.petugas.some(p=>p.nip===nip&&p.id!==id))return toast('NIP sudah terdaftar','bad');
-    const d={nama,nip,pangkat:g('pangkat'),jabatan,wilker:g('wilker'),aktif:!!fd.get('aktif')};
-    let pesan='Data petugas disimpan';
-    if(id){const p=petugasOf(id),a=akunDariPetugas(id),nipLama=p.nip,aktifLama=p.aktif;Object.assign(p,d);
-      if(a){a.nama=nama;if(aktifLama!==d.aktif)a.aktif=d.aktif;if(nip&&a.username===nipLama&&!DB.users.some(u=>u!==a&&u.username===nip))a.username=nip;}
-      else{const b=akunPetugas(p,DB.users);DB.users.push(b);pesan=`Data petugas disimpan. Akun masuk: ${b.username}, sandi ${PW_PETUGAS}`;}}
-    else{const p={id:'p'+uid(),...d};DB.petugas.push(p);const b=akunPetugas(p,DB.users);DB.users.push(b);pesan=`Data petugas disimpan. Akun masuk: ${b.username}, sandi ${PW_PETUGAS}`;}
-    closeModal();save();route();toast(pesan);
+  pegawai(fd){
+    const g=k=>String(fd.get(k)||'').trim(),sistem=fd.get('sistem')==='1';
+    const p=g('pid')?petugasOf(g('pid')):null;let a=g('uid')?userOf(g('uid')):null;const self=!!a&&a.id===ME.id;
+    let d=null;
+    if(!sistem){
+      const nama=g('nama'),jabatan=g('jabatan'),nip=g('nip').replace(/\s/g,'');
+      if(!nama||!jabatan)return toast('Nama dan jabatan wajib diisi','bad');
+      if(nip&&!/^\d{18}$/.test(nip))return toast('NIP harus 18 digit angka','bad');
+      if(nip&&DB.petugas.some(x=>x.nip===nip&&x!==p))return toast('NIP sudah terdaftar','bad');
+      d={nama,nip,pangkat:g('pangkat'),jabatan,wilker:g('wilker'),aktif:!!fd.get('tugas')};
+    }
+    const akunOn=sistem||!!fd.get('akun');let akunBaru=null;
+    if(akunOn){
+      const nama=sistem?g('nama'):d.nama;if(!nama)return toast('Nama akun wajib diisi','bad');
+      let peran=peranTupel().map(r=>r[0]).filter(r=>fd.get('peran_'+r));
+      if(!isAdmin()){peran=peran.filter(r=>r!=='admin');if(a&&peranOf(a).includes('admin'))peran.push('admin');}
+      if(sistem&&!isAdmin())peran=peranOf(a);
+      if(!peran.length)return toast('Pilih minimal satu peran','bad');
+      const username=g('username')||(d&&d.nip)||(a&&a.username)||akunPetugas({id:'x',nama,nip:''},DB.users.filter(u=>u!==a)).username;
+      if(DB.users.some(u=>u!==a&&u.username.toLowerCase()===username.toLowerCase()))return toast('Username sudah dipakai','bad');
+      const aktif=self?true:!!fd.get('aktifAkun'),pw=String(fd.get('password')||'');
+      if(pw&&pw.length<6)return toast('Kata sandi minimal 6 karakter','bad');
+      const admLain=DB.users.some(u=>u!==a&&u.aktif&&peranOf(u).includes('admin'));
+      if(!admLain&&!(aktif&&peran.includes('admin')))return toast('Harus tetap ada minimal satu admin satker yang aktif','bad');
+      akunBaru={nama,username,peran,aktif,pw};
+    }else if(a){
+      if(self)return toast('Akun Anda sendiri tidak bisa dihapus dari sini','bad');
+      if(peranOf(a).includes('admin')&&!DB.users.some(u=>u!==a&&u.aktif&&peranOf(u).includes('admin')))return toast('Harus tetap ada minimal satu admin satker yang aktif','bad');
+    }
+    // Semua valid: simpan
+    let orang=p;
+    if(d){if(p)Object.assign(p,d);else{orang={id:'p'+uid(),...d};DB.petugas.push(orang);}}
+    if(akunBaru){const {pw,...isi}=akunBaru;
+      if(a){Object.assign(a,isi);if(pw){a.password=pw;if(self)delete a.gantiSandi;else a.gantiSandi=true;}}
+      else{a={id:'u_pt_'+orang.id,...isi,password:pw||PW_PETUGAS,petugasId:orang.id,gantiSandi:true};DB.users.push(a);}
+      if(self)Object.assign(ME,a);
+    }else if(a&&!sistem)DB.users=DB.users.filter(u=>u!==a);
+    closeModal();save();route();toast(akunBaru&&!g('uid')?`Tersimpan. Akun masuk: ${a.username}, sandi ${akunBaru.pw?'sesuai isian':PW_PETUGAS}`:'Data pegawai disimpan');
   },
   pejabat(fd){
     for(const p of DB.settings.pejabat){p.nama=String(fd.get('nama_'+p.id)).trim();p.nip=String(fd.get('nip_'+p.id)).trim();p.j1=String(fd.get('j1_'+p.id)).trim();p.j2=String(fd.get('j2_'+p.id)).trim();}
@@ -3071,8 +3150,7 @@ const inputs={
   suratQ(e){ui.surat.q=e.target.value;ui.surat.page=1;deb(renderSuratList);},
   setoranQ(e){ui.setoran.q=e.target.value;ui.setoran.page=1;deb(renderSetoranList);},
   agenQ(e){ui.agen.q=e.target.value;ui.agen.page=1;deb(renderAgenList);},
-  usersQ(e){ui.users.q=e.target.value;deb(renderUserList);},
-  petugasCari(e){ui.petugas.q=e.target.value;deb(renderPetugasList);},
+  pegawaiCari(e){ui.pegawai.q=e.target.value;deb(renderPegawaiList);},
   gtAngka(e){const i=e.target;let t=i.value.replace(/[^\d,]/g,'').replace(/^,+/,'');const k=t.indexOf(',');if(k>=0)t=t.slice(0,k+1)+t.slice(k+1).replace(/,/g,'');if(t!==i.value)i.value=t;},
   petugasQ(){deb(()=>{$('#petugas-list').scrollTop=0;renderPicker();});},
   agenCombo(e){
@@ -3103,14 +3181,16 @@ const changes={
     const ukuran=(f.size/1048576).toFixed(f.size<1048576?2:1)+' MB';
     box.innerHTML=(/^image\//.test(f.type)?`<img src="${urlBerkas(f)}" alt="">`:`<span class="drop-ic">${ic('file')}</span>`)+`<span class="grow"><b class="strong" style="overflow-wrap:anywhere">${esc(f.name)}</b><span class="small muted" style="display:block">${ukuran}, ketuk untuk mengganti</span></span>`;
   },
-  petugasWilker(e){ui.petugas.wilker=e.target.value;renderPetugasList();},
-  userRole(e){const r=e.target.value,w=$('#wk-field'),p=$('#pt-field');if(w)w.hidden=r!=='user';if(p)p.hidden=r!=='petugas';},
+  pegawaiWilker(e){ui.pegawai.wilker=e.target.value;renderPegawaiList();},
+  pegawaiPeran(e){ui.pegawai.peran=e.target.value;renderPegawaiList();},
+  pgAkun(e){const d=$('#akun-isi');if(d)d.hidden=!e.target.checked;},
+  async pegawaiImpor(e){const f=e.target.files[0];e.target.value='';if(!f)return;try{const h=imporPegawai(parseCSV(await f.text()));save();route();toast(`Impor selesai: ${h.baru} ditambah, ${h.ubah} diperbarui${h.lewat?`, ${h.lewat} dilewati`:''}`);}catch(x){toast(x.message,'bad');}},
   suratJenis(e){ui.surat.jenis=e.target.value;ui.surat.page=1;renderSuratList();},
   suratWilker(e){ui.surat.wilker=e.target.value;ui.surat.page=1;renderSuratList();},
   setoranWilker(e){ui.setoran.wilker=e.target.value;ui.setoran.page=1;renderSetoranList();},
   setoranStatus(e){ui.setoran.status=e.target.value;ui.setoran.page=1;renderSetoranList();},
   agenKab(e){ui.agen.kab=e.target.value;ui.agen.page=1;renderAgenList();},
-  perm(e){DB.settings.perms[e.target.dataset.k]=e.target.checked;save();},
+  perm(e){const {r,k}=e.target.dataset,P=DB.settings.permsPeran=DB.settings.permsPeran||{};(P[r]=P[r]||{})[k]=e.target.checked;save();},
   kopLogo(e){imgSetting(e,1040,v=>DB.settings.kop.logo=v);},
   kopGambar(e){imgSetting(e,2000,v=>DB.settings.kop.gambar=v);},
   appLogo(e){imgSetting(e,500,v=>DB.settings.appLogo=v);},
