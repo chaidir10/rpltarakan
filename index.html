@@ -2695,6 +2695,7 @@ function vDetail(s){
       `${esc(t.nomor)}, total Rp ${rp(totalTagihan(t))}.${daftarModa(t)}${s.notif&&s.notif[2]?` WA dibuka untuk dikirim ${waktu(s.notif[2])}.`:''}<div class="acts"><button class="btn sm" data-act="previewNominatif" data-id="${s.id}">${ic('eye')} Pratinjau nominatif</button><button class="btn sm pri" data-act="dlNominatif" data-id="${s.id}">${ic('down')} Unduh PDF</button>${can('tagihan')&&!b?`<button class="btn sm" data-act="genTagihan" data-id="${s.id}">${ic('edit')} Ubah</button>`:''}${waBtn(2,s.notif&&s.notif[2]?'Kirim ulang WA':'Kirim WA tagihan')}</div>`),
     step(tanpaTagihan(s)?'wait':b&&b.status!=='ditolak'?'done':t?'now':'wait',4,'Upload bukti bayar oleh agen',tanpaTagihan(s)?'Tidak diperlukan.':b?`${esc(b.nama)}${b.bank?` (${esc(b.bank)}${b.norek?` ${esc(b.norek)}`:''})`:''}, transfer ${tglID(b.tgl)}${b.at?`, dikirim ${waktu(b.at)}`:''}.${b.status==='ditolak'?` Ditolak: ${esc(b.alasan)}`:''}<div class="mt2" style="max-width:300px"><button class="bukti-thumb" data-act="lihatBukti" data-id="${s.id}" data-thumb="${b.fileId}" aria-label="Lihat bukti transfer"></button></div><div class="acts"><button class="btn sm" data-act="lihatBukti" data-id="${s.id}">${ic('eye')} Lihat bukti transfer</button></div>`:lewatBatas(s)?'<span class="tag bad">Lewat batas pembayaran</span>':'Menunggu agen.'),
     step(tanpaTagihan(s)?'wait':k==='valid'?'done':k==='validasi'?'now':'wait',5,'Validasi pembayaran',tanpaTagihan(s)?'Tidak diperlukan.':k==='valid'?`Divalidasi ${esc(b.validBy||'')} ${b.validAt?waktu(b.validAt):''}.`:k==='validasi'&&can('validasi')?`<div class="acts"><button class="btn sm pri" data-act="validasi" data-id="${s.id}">${ic('check')} Pembayaran valid</button><button class="btn sm danger" data-act="tolakBayar" data-id="${s.id}">Tolak</button></div>`:''),
+    step(s.periksa?'done':s.nomor?'now':'wait',6,'Pemeriksaan & hasil',s.periksa?`Diperiksa ${tglID(s.periksa.tgl)} oleh ${esc(s.periksa.oleh||'')}.${s.periksa.catatan?' '+esc(s.periksa.catatan):''}<div class="acts">${s.periksa.fileId?`<button class="btn sm" data-act="openFile" data-file="${s.periksa.fileId}">${ic('file')} Hasil pemeriksaan</button>`:''}${can('st.create')?`<button class="btn sm" data-act="periksaForm" data-id="${s.id}">${ic('edit')} Ubah</button>`:''}</div>`:can('st.create')?`Setelah kapal diperiksa, catat dan unggah hasil pemeriksaan agar agen bisa mengunduhnya.<div class="acts"><button class="btn sm ${s.nomor?'pri':''}" data-act="periksaForm" data-id="${s.id}">${ic('check')} Catat pemeriksaan selesai</button></div>`:'Menunggu pemeriksaan oleh petugas.'),
   ].join('');
   const ptgs=s.petugas.map(p=>{const u=petugasOf(p)||{};return `<div>${esc(u.nama||'-')}<div class="small muted">${esc(u.jabatan||'')}</div></div>`;}).join('');
   return `<div class="wrap-row" style="margin-bottom:12px">${stageTag(s)}${tagJenis(s)}${lewatBatas(s)?'<span class="tag bad">Lewat batas bayar</span>':''}</div>
@@ -2748,28 +2749,32 @@ const permohonanOf=id=>(DB.permohonan||[]).find(p=>p.id===id);
 const stAgen=()=>isAgen()?DB.st.filter(s=>s.agenId===ME.id):[];
 const permohonanAgen=()=>isAgen()?(DB.permohonan||[]).filter(p=>p.agenId===ME.id):[];
 const HAL_PERMOHONAN='Rencana Kedatangan/Keberangkatan Kapal';
-/* Langkah pelacakan: [judul, status done|now|wait|skip|bad, keterangan] */
+/* Langkah pelacakan agen: [judul, status done|now|wait|skip|bad, keterangan].
+   Urutan sesuai alur: permohonan dikirim -> diterima -> SPD dicap (khusus >= 4 mil) -> konfirmasi transportasi
+   -> tagihan -> pembayaran & validasi (keduanya dilewati bila tanpa tagihan / Rp 0) -> pemeriksaan petugas -> selesai (unduh hasil). */
+const L_KIRIM='Permohonan dikirim',L_TERIMA='Permohonan diterima',L_SPD='SPD ditandatangani & dicap agen',L_TRANS='Konfirmasi transportasi petugas',
+  L_TAGIH='Tagihan',L_BAYAR='Pembayaran & validasi',L_PERIKSA='Pemeriksaan oleh petugas',L_SELESAI='Selesai';
+const tanpaBayar=s=>tanpaTagihan(s)||(!!s.tagihan&&totalTagihan(s.tagihan)===0);
 function langkahAgen(s,p){
-  const L=[];
-  if(p||(s&&s.permohonanId)){const pm=p||permohonanOf(s.permohonanId);L.push(['Permohonan dikirim','done',pm?`${esc(pm.noSurat)}, ${tglID(pm.tglSurat)}`:'']);}
+  const L=[],pm=p||(s&&s.permohonanId?permohonanOf(s.permohonanId):null);
+  if(pm)L.push([L_KIRIM,pm.status==='baru'?'now':'done',pm.status==='baru'?`${esc(pm.noSurat)}, ${tglID(pm.tglSurat)}. Menunggu validasi petugas.`:`${esc(pm.noSurat)}, ${tglID(pm.tglSurat)}`]);
   if(!s){
-    if(p.status==='ditolak')L.push(['Permohonan ditolak','bad',esc(p.alasan||'')]);
-    else L.push(['Diterima & diproses satker','now','Petugas sedang menyiapkan surat tugas.']);
-    ['Surat tugas disahkan (TTE Srikandi)','Konfirmasi transportasi','Tagihan & pembayaran','Selesai'].forEach(j=>L.push([j,'wait','']));
+    L.push([L_TERIMA,p.status==='ditolak'?'bad':'wait',p.status==='ditolak'?'Permohonan ditolak: '+esc(p.alasan||''):'']);
+    [L_TRANS,L_TAGIH,L_BAYAR,L_PERIKSA,L_SELESAI].forEach(j=>L.push([j,'wait','']));
     return L;
   }
-  const sah=!!(s.nomor&&s.fileST),jauh=jarakST(s)==='jauh',k=stage(s),tanpa=tanpaTagihan(s);
-  L.push(['Surat tugas dibuat','done',`${s.petugas.length} petugas, pemeriksaan ${tglID(s.tanggal)}`]);
-  L.push(['Surat tugas disahkan (TTE Srikandi)',sah?'done':'now',sah?`Nomor ${esc(s.nomor)}${jauh?', termasuk SPD petugas':''}`:'Menunggu pengesahan di Srikandi.']);
-  L.push(['Konfirmasi transportasi',s.jemput?'done':'now',s.jemput?esc(jemputTeks(s)):'Pilih apakah agen menyediakan transportasi petugas.']);
-  if(jauh)L.push(['SPD ditandatangani & dicap agen',s.spdCap?'done':sah?'now':'wait',s.spdCap?`Diunggah ${waktu(s.spdCap.at)}`:'Unduh SPD, tanda tangan & cap basah, lalu unggah kembali.']);
-  if(tanpa)L.push(['Tagihan','skip','Tidak ada tagihan karena transportasi disediakan agen.']);
+  const sah=!!(s.nomor&&s.fileST),jauh=jarakST(s)==='jauh',k=stage(s),lewat=tanpaBayar(s);
+  L.push([L_TERIMA,'done',sah?`Surat tugas nomor ${esc(s.nomor)}, ${s.petugas.length} petugas, pemeriksaan ${tglID(s.tanggal)}`:`Surat tugas sedang disahkan di Srikandi, pemeriksaan ${tglID(s.tanggal)}`]);
+  if(jauh)L.push([L_SPD,s.spdCap?'done':sah?'now':'wait',s.spdCap?`Diunggah ${waktu(s.spdCap.at)}`:sah?'Unduh SPD, tanda tangan & cap basah, lalu unggah kembali.':'Menunggu surat tugas & SPD disahkan di Srikandi.']);
+  L.push([L_TRANS,s.jemput?'done':'now',s.jemput?esc(jemputTeks(s)):'Pilih apakah agen menyediakan transportasi petugas.']);
+  if(lewat){L.push([L_TAGIH,'skip','Tidak ada tagihan.']);L.push([L_BAYAR,'skip','Tidak diperlukan.']);}
   else{
-    L.push(['Tagihan terbit',s.tagihan?'done':s.jemput?'now':'wait',s.tagihan?`${esc(s.tagihan.nomor)}, Rp ${rp(totalTagihan(s.tagihan))}`:'Menunggu tagihan dari petugas.']);
-    L.push(['Pembayaran & validasi',k==='valid'?'done':k==='tolak'?'bad':k==='validasi'?'now':k==='bayar'?'now':'wait',k==='valid'?'Pembayaran valid.':k==='tolak'?'Bukti ditolak, kirim ulang.':k==='validasi'?'Bukti terkirim, menunggu validasi.':k==='bayar'?'Silakan transfer dan kirim bukti.':'']);
+    L.push([L_TAGIH,s.tagihan?'done':s.jemput?'now':'wait',s.tagihan?`${esc(s.tagihan.nomor)}, Rp ${rp(totalTagihan(s.tagihan))}`:s.jemput?'Menunggu tagihan dari petugas.':'']);
+    L.push([L_BAYAR,k==='valid'?'done':k==='tolak'?'bad':k==='validasi'||k==='bayar'?'now':'wait',k==='valid'?'Pembayaran valid.':k==='tolak'?'Bukti ditolak, kirim ulang.':k==='validasi'?'Bukti terkirim, menunggu validasi.':k==='bayar'?'Silakan transfer dan kirim bukti.':'']);
   }
-  const selesai=(tanpa||k==='valid')&&(!jauh||!!s.spdCap)&&sah&&!!s.jemput;
-  L.push(['Selesai',selesai?'done':'wait',selesai?'Seluruh proses selesai.':'']);
+  L.push([L_PERIKSA,s.periksa?'done':sah?'now':'wait',s.periksa?`Diperiksa ${tglID(s.periksa.tgl)}`:`Dijadwalkan ${tglID(s.tanggal)}, ${esc(s.posisi)}`]);
+  const selesai=!!s.periksa&&!!s.jemput&&(lewat||k==='valid')&&(!jauh||!!s.spdCap);
+  L.push([L_SELESAI,selesai?'done':'wait',selesai?'Seluruh proses selesai. Hasil pemeriksaan bisa diunduh.':'']);
   return L;
 }
 const persenLangkah=L=>{const n=L.filter(x=>x[1]!=='skip'),d=n.filter(x=>x[1]==='done').length;return Math.round(100*d/Math.max(1,n.length));};
@@ -2823,26 +2828,28 @@ function vAgenST(s){
   const bukaLama=ui.invBuka;if(bukaLama===undefined)ui.invBuka=false;const I=t?vInvoice(s):null;ui.invBuka=bukaLama;
   /* Dokumen & tindakan melekat pada langkahnya */
   const isi={};
-  if(pm&&pm.fileId)isi['Permohonan dikirim']=`<div class="acts">${tombol(pm.fileId,'Lihat surat permohonan')}</div>`;
-  if(sah)isi['Surat tugas disahkan (TTE Srikandi)']=`<div class="acts">${tombol(s.fileST,'Unduh surat tugas'+(jauh?' & SPD':''),true)}</div>`;
-  isi['Konfirmasi transportasi']=!s.jemput?`<p class="small">Apakah agen menyediakan transportasi untuk <b>${s.petugas.length} petugas</b> pemeriksa kapal ini?</p>
+  if(pm&&pm.fileId)isi[L_KIRIM]=`<div class="acts">${tombol(pm.fileId,'Lihat surat permohonan')}</div>`;
+  if(sah&&!jauh)isi[L_TERIMA]=`<div class="acts">${tombol(s.fileST,'Unduh surat tugas',false)}</div>`;
+  isi[L_TRANS]=!s.jemput?`<p class="small">Apakah agen menyediakan transportasi untuk <b>${s.petugas.length} petugas</b> pemeriksa kapal ini?</p>
     <div class="grid2 pilih-trans"><button class="opt ya" data-act="agenJemput" data-id="${s.id}" data-v="ya"><span class="pt-ic">${ic('mobil')}</span><b>Disediakan agen</b><small>Agen menjemput dan mengantar petugas.</small><span class="tag ok">${jauh?'Transport Rp 0':'Tanpa tagihan (Rp 0)'}</span></button>
     <button class="opt tidak" data-act="agenJemput" data-id="${s.id}" data-v="tidak"><span class="pt-ic">${ic('struk')}</span><b>Tidak disediakan</b><small>${jauh?'Petugas memakai kendaraan sendiri, transport at cost Rp 0.':'Biaya transportasi petugas ditagihkan sesuai bukti klaim.'}</small><span class="tag warn">Ada tagihan</span></button></div>
     ${jauh?`<div class="alert">${ic('alert')}<span>Jarak 4 mil atau lebih: uang harian Rp ${rp(DB.settings.tarifLuar||0)} per petugas dan penginapan tetap ditagihkan.</span></div>`:''}`
     :s.jemput==='ya'?`<p class="small muted">Unduh surat pernyataan penjemputan beserta tanda tangan QR agen dan petugas.</p>${tombolPernyataan(s,true)}`:'';
-  if(jauh)isi['SPD ditandatangani & dicap agen']=!sah?'':`${s.spdCap?`<div class="acts">${tombol(s.spdCap.fileId,'Lihat SPD bercap')}</div>`:''}
+  if(jauh)isi[L_SPD]=!sah?'':`<div class="acts">${tombol(s.fileST,'Unduh surat tugas & SPD',!s.spdCap)}${s.spdCap?tombol(s.spdCap.fileId,'Lihat SPD bercap'):''}</div>
     <form class="trk-form" data-form="spdCap" data-id="${s.id}" novalidate>${field(s.spdCap?'Ganti berkas SPD':'Berkas SPD bertanda tangan & cap (PDF/foto)','file','',{type:'file',accept:'.pdf,.jpg,.jpeg,.png'})}<button class="btn sm pri">${ic('upload')} Unggah SPD</button></form>`;
-  if(t)isi['Tagihan terbit']=I.rincian;
-  if(t&&(k==='bayar'||k==='tolak'))isi['Pembayaran & validasi']=`${k==='tolak'?`<div class="alert bad">${ic('alert')}<span>Bukti sebelumnya ditolak: ${esc(b.alasan||'')}. Silakan kirim ulang.</span></div>`:''}${I.ringkas}
+  if(t&&!tanpaBayar(s))isi[L_TAGIH]=I.rincian;
+  if(t&&!tanpaBayar(s)&&(k==='bayar'||k==='tolak'))isi[L_BAYAR]=`${k==='tolak'?`<div class="alert bad">${ic('alert')}<span>Bukti sebelumnya ditolak: ${esc(b.alasan||'')}. Silakan kirim ulang.</span></div>`:''}${I.ringkas}
     <form class="trk-form card-bukti" data-form="bukti" data-id="${s.id}" novalidate>
     <label class="drop" id="drop"><input type="file" name="file" accept="image/*,.pdf" data-change="buktiPilih" aria-label="Foto atau file bukti transfer"><span id="drop-isi">${isiDrop()}</span></label>
     <div class="up-row"><div class="field f-bank"><label class="req" for="f_bank">Bank pengirim</label><div class="combo"><input class="inp" id="f_bank" name="bank" data-input="bankCombo" autocomplete="off" placeholder="Ketik nama bank"><div class="combo-list" id="bank-list" hidden></div></div></div>
       ${field('No. rekening pengirim','norek','',{req:1,mode:'numeric',ph:'Nomor rekening',ac:'off'})}${field('Nama penyetor','nama','',{req:1,ph:'Sesuai rekening'})}${field('Tanggal transfer','tgl',today(),{req:1,type:'date',cls:'f-tgl'})}</div>
     <button class="btn pri block">${ic('send')} Kirim bukti transfer</button></form>`;
-  if(t&&(k==='validasi'||k==='valid'))isi['Pembayaran & validasi']=`<div class="trk-bukti"><button class="bukti-thumb" data-act="openFile" data-file="${b.fileId}" data-thumb="${b.fileId}" aria-label="Buka bukti transfer"></button><dl class="kv small">${baisBukti(b)}</dl></div>`;
+  if(t&&(k==='validasi'||k==='valid'))isi[L_BAYAR]=`<div class="trk-bukti"><button class="bukti-thumb" data-act="openFile" data-file="${b.fileId}" data-thumb="${b.fileId}" aria-label="Buka bukti transfer"></button><dl class="kv small">${baisBukti(b)}</dl></div>`;
+  if(s.periksa&&s.periksa.fileId)isi[L_SELESAI]=`<div class="acts">${tombol(s.periksa.fileId,'Unduh hasil pemeriksaan',true)}</div>`;
   const total=t?totalTagihan(t):0,stat={bayar:['Belum dibayar','warn'],tolak:['Bukti ditolak','bad'],validasi:['Menunggu validasi','warn'],valid:['Lunas','ok']}[k];
-  const ringkas=`<aside class="card agen-ringkas"><div class="hd"><h2>Ringkasan</h2>${stageTag(s)}</div><div class="bd"><dl class="kv"><dt>Kapal</dt><dd>${esc(namaKapal(s))}</dd><dt>Posisi</dt><dd>${esc(s.posisi)}</dd><dt>Pemeriksaan</dt><dd>${tglID(s.tanggal)}</dd><dt>Petugas</dt><dd>${s.petugas.length} orang</dd><dt>Jarak</dt><dd>${jauh?'4 mil atau lebih':'Kurang dari 4 mil'}</dd><dt>Surat tugas</dt><dd>${esc(s.nomor||'Dalam proses')}</dd>${pm?`<dt>Surat agen</dt><dd>${esc(pm.noSurat)}</dd>`:''}</dl>
-    ${t?`<div class="agen-tot"><span class="small muted">Tagihan ${esc(t.nomor)}</span><b class="mono">Rp ${rp(total)}</b>${stat?`<span class="tag ${stat[1]}">${stat[0]}</span>`:''}${k==='bayar'||k==='tolak'?`<span class="small muted">Bayar paling lambat ${tglID(batasTgl(s))}</span>`:''}</div>`:tanpaTagihan(s)?`<div class="alert ok mt2">${ic('check')}<span>Tanpa tagihan: transportasi disediakan agen.</span></div>`:''}</div></aside>`;
+  const kini=L.find(l=>l[1]==='now'||l[1]==='bad'),tagKini=!kini?'<span class="tag ok">Selesai</span>':`<span class="tag ${kini[1]==='bad'?'bad':'warn'}">${kini[1]==='bad'?kini[0]:'Menunggu '+kini[0].charAt(0).toLowerCase()+kini[0].slice(1)}</span>`;
+  const ringkas=`<aside class="card agen-ringkas"><div class="hd"><h2>Ringkasan</h2>${tagKini}</div><div class="bd"><dl class="kv"><dt>Kapal</dt><dd>${esc(namaKapal(s))}</dd><dt>Posisi</dt><dd>${esc(s.posisi)}</dd><dt>Pemeriksaan</dt><dd>${tglID(s.tanggal)}</dd><dt>Petugas</dt><dd>${s.petugas.length} orang</dd><dt>Jarak</dt><dd>${jauh?'4 mil atau lebih':'Kurang dari 4 mil'}</dd><dt>Surat tugas</dt><dd>${esc(s.nomor||'Dalam proses')}</dd>${pm?`<dt>Surat agen</dt><dd>${esc(pm.noSurat)}</dd>`:''}</dl>
+    ${t&&!tanpaBayar(s)?`<div class="agen-tot"><span class="small muted">Tagihan ${esc(t.nomor)}</span><b class="mono">Rp ${rp(total)}</b>${stat?`<span class="tag ${stat[1]}">${stat[0]}</span>`:''}${k==='bayar'||k==='tolak'?`<span class="small muted">Bayar paling lambat ${tglID(batasTgl(s))}</span>`:''}</div>`:tanpaBayar(s)?`<div class="alert ok mt2">${ic('check')}<span>${tanpaTagihan(s)?'Tanpa tagihan: transportasi disediakan agen.':'Tidak ada tagihan (Rp 0).'}</span></div>`:''}</div></aside>`;
   return `<div class="agen-detail"><div class="card"><div class="hd"><h2>Pelacakan</h2></div><div class="bd">${progresHtml(L)}${langkahHtml(L,isi)}</div></div>${ringkas}</div>`;
 }
 function vAgenAkun(){
@@ -2979,6 +2986,7 @@ function temuanMonev(s){
   if(t)DB.st.forEach(o=>{if(o!==s&&o.tagihan&&o.kapal===s.kapal&&o.tanggal===s.tanggal)T.double.push(`Tagihan lain untuk kapal dan tanggal yang sama: ${o.nomor||'surat '+tglID(o.tglST)}`);});
   if(t)t.rincian.filter(r=>biayaBaris(r)>0).forEach(r=>DB.st.forEach(o=>{if(o===s||o.tanggal!==s.tanggal||!o.tagihan)return;const x=o.tagihan.rincian.find(y=>y.id===r.id&&biayaBaris(y)>0);if(x)T.klaim.push(`${nm(r.id)} juga diklaim pada ${namaKapal(o)} di hari yang sama`);}));
   if(!s.fileST)T.bukti.push('Surat tugas bertanda tangan (TTE) belum diunggah');
+  if(!s.periksa)T.bukti.push('Hasil pemeriksaan belum diunggah petugas');
   if(jauh&&!s.spdCap)T.bukti.push('SPD bertanda tangan & cap agen belum ada');
   if(t&&stage(s)!=='valid')T.bukti.push('Pembayaran agen belum tervalidasi');
   return T;
@@ -3478,6 +3486,7 @@ const actions={
     openModal({title:`Monev RPL - ${s.kapal}`,wide:true,body:`<div class="bukti-view"><iframe src="${urlBerkas(blob)}" title="Formulir monev"></iframe></div>`,foot:`<button class="btn" data-act="closeModal">Tutup</button><button class="btn pri" data-act="_previewDl">${ic('down')} Unduh PDF</button>`});},
   monevHapus(el){confirmBox('Hapus monev','Hasil monev surat tugas ini akan dihapus.',()=>{DB.monev=(DB.monev||[]).filter(m=>m.stId!==el.dataset.id);save();route();toast('Monev dihapus');},'Hapus',true);},
   skiLogoReset(){delete DB.settings.logoSki;refresh();},
+  periksaForm(el){const s=findST(el.dataset.id),P=s.periksa||{};openModal({title:'Pemeriksaan selesai',form:'periksa',body:`<input type="hidden" name="id" value="${s.id}"><div class="grid2">${field('Tanggal pemeriksaan','tgl',P.tgl||s.tanggal,{req:1,type:'date'})}${field(P.fileId?'Ganti berkas hasil (opsional)':'Hasil pemeriksaan (PDF/foto)','file','',{type:'file',req:!P.fileId,accept:'.pdf,.jpg,.jpeg,.png',hint:'Misalnya sertifikat atau berita acara; diunduh agen setelah selesai.'})}${field('Catatan','catatan',P.catatan||'',{cls:'span2'})}</div>`,foot:'<button type="button" class="btn" data-act="closeModal">Batal</button><button class="btn pri">Simpan</button>'});},
   lihatPermohonan(el){const p=permohonanOf(el.dataset.id);if(p)permohonanModal(p);},
   batalPermohonan(el){const p=permohonanOf(el.dataset.id);if(!p||p.agenId!==ME.id||p.status!=='baru')return;confirmBox('Batalkan permohonan','Permohonan ini akan dihapus.',async()=>{DB.permohonan=DB.permohonan.filter(x=>x!==p);if(p.fileId)await store.del('files',p.fileId);save();location.hash='#/a';toast('Permohonan dibatalkan');},'Batalkan',true);},
   tolakPermohonan(el){const p=permohonanOf(el.dataset.id);openModal({title:'Tolak permohonan',form:'tolakPermohonan',body:'<input type="hidden" name="id" value="'+p.id+'">'+field('Alasan penolakan','alasan','',{type:'textarea',rows:3,req:1,hint:'Alasan ditampilkan kepada agen.'}),foot:'<button type="button" class="btn" data-act="closeModal">Batal</button><button class="btn danger">Tolak permohonan</button>'});},
@@ -3578,6 +3587,14 @@ const forms={
     if(id)Object.assign(agenOf(id),d);
     else DB.agen.unshift({id:'ag'+uid(),tgl:today(),...d});
     closeModal();save();renderAgenList();toast('Data agen disimpan');
+  },
+  async periksa(fd){
+    const s=findST(fd.get('id'));if(!s||!can('st.create'))return;
+    const tgl=String(fd.get('tgl')||''),file=fd.get('file'),catatan=String(fd.get('catatan')||'').trim(),lama=s.periksa||{};
+    if(!tgl)return toast('Tanggal pemeriksaan wajib diisi','bad');
+    if(tgl>today())return toast('Tanggal pemeriksaan tidak boleh melewati hari ini','bad');
+    if(!lama.fileId||(file&&file.size)){if(!checkUpload(file,'Hasil pemeriksaan'))return;if(lama.fileId)await store.del('files',lama.fileId);lama.fileId=await saveFile(file);}
+    s.periksa={tgl,fileId:lama.fileId,catatan,at:Date.now(),oleh:ME.nama};addLog(s,'Pemeriksaan dicatat selesai ('+tglID(tgl)+') dan hasil diunggah');closeModal();refresh();toast('Pemeriksaan dicatat. Agen dapat mengunduh hasilnya.');
   },
   async salur(fd){
     const s=findST(fd.get('id'));if(!s||!can('salur'))return;
