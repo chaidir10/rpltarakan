@@ -1,11 +1,13 @@
 ---
-name: rpl-kapal
-description: Panduan kerja aplikasi RPL Kapal BKK Kelas I Tarakan (index.html satu berkas) - struktur kode, alur surat tugas/tagihan, data & migrasi, DOCX/PDF/QR, kontrol kustom, cara mengubah, menguji, dan push. Pakai setiap kali mengubah, memperbaiki, atau menjelaskan aplikasi ini.
+name: safira
+description: Panduan kerja aplikasi SAFIRA (Sistem Administrasi Fasilitasi Inspeksi, RPL, dan Anggaran Kapal; dulu "RPL Kapal") BKK Kelas I Tarakan (index.html satu berkas) - struktur kode, alur surat tugas/tagihan, data & migrasi, DOCX/PDF/QR, kontrol kustom, cara mengubah, menguji, dan push. Pakai setiap kali mengubah, memperbaiki, atau menjelaskan aplikasi ini.
 ---
 
-# RPL Kapal - BKK Kelas I Tarakan
+# SAFIRA - BKK Kelas I Tarakan
 
-Prototipe aplikasi Rekening Pemerintah Lainnya (RPL) untuk biaya transportasi pemeriksaan kapal.
+**SAFIRA** = Sistem Administrasi Fasilitasi Inspeksi, RPL, dan Anggaran Kapal (nama resmi sejak 2026-11-05; sebelumnya "RPL Kapal", sempat diusulkan "ASTRAVA" tetapi tidak pernah dirilis). Nama bawaan di `NAMA_APP`/`KEPANJANGAN_APP`; admin masih bisa mengubah nama di pengaturan Aplikasi (`DB.settings.appName`). Pengenal teknis lama sengaja **tidak** diganti agar data & QR lama tetap berlaku: IndexedDB `rpl-bkk-tarakan`, kunci `rpl.theme`/`rpl.session`/`rpl.sort`, kanal `rpl-sync`, kunci QR `KUNCI_QR`. "RPL" di teks aplikasi tetap berarti Rekening Pemerintah Lainnya.
+
+Prototipe aplikasi surat tugas pemeriksaan kapal dan biaya transportasinya lewat Rekening Pemerintah Lainnya (RPL).
 Satu-satunya berkas aplikasi: `index.html` (~575 KB, HTML + CSS + JS tanpa pustaka luar, tanpa build).
 Repo publik: https://github.com/chaidir10/rpltarakan (cabang `main`). Bahasa antarmuka, komentar, dan pesan commit: **Bahasa Indonesia**.
 
@@ -30,8 +32,8 @@ Repo publik: https://github.com/chaidir10/rpltarakan (cabang `main`). Bahasa ant
 | Jenis pemeriksaan | `const JENIS=`, `kunciJenis`, `urutJenis` |
 | Wilker (5) | `const WILKER=` (akun wilker bersama sudah tidak dipakai) |
 | Pegawai bawaan (30 nama) & akun | `PETUGAS_AWAL`, `akunPetugas`, `lengkapiAkunPetugas`, `akunDariPetugas`, `PW_PETUGAS` |
-| Migrasi data | `function migrasi(d)` (versi data sekarang **13**) |
-| Data awal | `function seedState()` (harus `v:13`) |
+| Migrasi data | `function migrasi(d)` (versi data sekarang **14**) |
+| Data awal | `function seedState()` (harus `v:14`) |
 | Sesi, peran, hak akses | `loadSession`, `PERAN_BAWAAN`, `daftarPeran`, `punya`, `isAdmin`, `lihatSemua`, `can`, `stSaya`, `bolehLihat`, `milikSaya`, `terbatas`, `sayaPetugas` |
 | Status surat | `const STAGE=`, `function stage(s)`, `tanpaTagihan`, `perluSatker` |
 | Jarak & transport | `JARAK`, `PILIH_JARAK`, `jarakST`, `pilihJarak`, `MODA`, `barisTagihan`, `aturBarisTagihan` |
@@ -46,7 +48,7 @@ Repo publik: https://github.com/chaidir10/rpltarakan (cabang `main`). Bahasa ant
 
 Pola UI: delegasi event. Tombol memakai `data-act="namaAksi"`, form `data-form="nama"` + `novalidate` (validasi manual dengan `toast(...,'bad')`), perubahan input `data-change`/`data-input`. Render ulang lewat `route()`.
 
-## Pengguna, peran & rute (data versi 13)
+## Pengguna, peran & rute (sejak data versi 13)
 
 - **Satu orang satu catatan.** Data orang ada di `DB.petugas` (nama, NIP, pangkat, jabatan, wilker asal, `aktif` = bisa ditugaskan). Akun masuk (opsional) ada di `DB.users` dan terhubung lewat `petugasId` (`akunDariPetugas`). Keduanya dikelola dari satu menu **Pegawai & Akun** (`#/set/pegawai`, `vSetPegawai`, `pegawaiModal`, `forms.pegawai`, impor/ekspor CSV `imporPegawai`). Rute lama `set/users` dan `set/petugas` dialihkan ke sana.
 - **Peran jamak per akun**: `user.peran = ['petugas','validator',...]` (tidak ada lagi `role`). Peran adalah **data** di `DB.settings.peran` (`{id,nama,warna,ket,lingkup,bawaan}`); admin bisa menambah/mengubah/menghapus peran tambahan di Hak Akses (`peranModal`, `forms.peran`). Bawaan: Petugas (lingkup `sendiri`), Validator keuangan, Pimpinan, Admin satker (lingkup `semua`). Pakai `daftarPeran()`, `cariPeran(id)`, `peranTupel()`, `peranOf(u)`, `teksPeran(u)`; jangan menulis daftar peran tetap di kode.
@@ -119,7 +121,7 @@ Berkas besar dan berbaris panjang (gambar base64), dan memakai CRLF.
 - 21 petugas belum punya NIP/pangkat/jabatan (tercetak kosong di surat tugas, SPD, nominatif).
 - Nominatif di DOCX dibuat sebelum tagihan ada (penginapan "-"); bisa berbeda dengan tagihan akhir.
 - Baris II halaman belakang SPD mengikuti contoh ("Berangkat dari Tarakan, Ke tujuan"), belum dibalik.
-- Nama aplikasi "RPL Kapal" vs "RPL Tarakan" belum diputuskan; belum diuji di ponsel/printer/kamera nyata.
+- Belum diuji di ponsel/printer/kamera nyata.
 
 ## Riwayat perubahan
 
@@ -134,4 +136,5 @@ Tambahkan satu baris per perubahan (terbaru di bawah): tanggal, commit, ringkasa
 - 2026-11-05 `05025c7` Daftar 30 petugas BKK Tarakan sebagai data bawaan (data v12).
 - 2026-11-05 `2597126` SKILL.md ini dibuat.
 - 2026-11-05 `4124940` Model pengguna baru (data v13): menu tunggal **Pegawai & Akun**, peran jamak per akun, peran sebagai data (bisa ditambah di Hak Akses), hak per peran (`permsPeran`), lingkup data per peran, akun wilker bersama dinonaktifkan, impor/ekspor CSV pegawai, pengingat ganti sandi bawaan, minimal satu admin aktif. Uji baru `t53`.
-- 2026-11-05 (commit ini) Pegawai baru kembali otomatis punya akun; judul halaman di ponsel boleh dua baris (judul panjang seperti "Pegawai & Akun" tidak terpotong); migrasi data sangat lama (v<10) tanpa `perms` tidak lagi error. Uji lama (t5, t6, t7, t10, t13, t20, t25, t35, t36, t41, t42, t47, t50, t51, t52) disesuaikan ke model pegawai & peran.
+- 2026-11-05 `970c66c` Pegawai baru kembali otomatis punya akun; judul halaman di ponsel boleh dua baris (judul panjang seperti "Pegawai & Akun" tidak terpotong); migrasi data sangat lama (v<10) tanpa `perms` tidak lagi error. Uji lama (t5, t6, t7, t10, t13, t20, t25, t35, t36, t41, t42, t47, t50, t51, t52) disesuaikan ke model pegawai & peran.
+- 2026-11-05 (commit ini) Nama aplikasi resmi **SAFIRA** (data v14): judul tab, meta, halaman masuk (dengan kepanjangan), samping (kepanjangan saat disorot), catatan kaki surat pernyataan "aplikasi SAFIRA"; migrasi mengganti nama bawaan lama "RPL Kapal/RPL Tarakan" tanpa menimpa nama buatan admin. Folder skill diganti menjadi `.claude/skills/safira/`. Uji baru `t54`; uji memeriksa `DB.v===14`.
